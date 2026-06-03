@@ -1,0 +1,193 @@
+@import 'tailwindcss';
+
+/* -------------------------------------------------------------------------- */
+/*  Orbitron — local variable font (covers weights 400–900 in one file)       */
+/* -------------------------------------------------------------------------- */
+@font-face {
+  font-family: 'Orbitron';
+  src: url('./assets/fonts/Orbitron/Orbitron-VariableFont_wght.ttf')
+    format('truetype');
+  font-weight: 400 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* -------------------------------------------------------------------------- */
+/*  Design tokens (Tailwind v4 @theme → utilities like font-display, etc.)     */
+/* -------------------------------------------------------------------------- */
+@theme {
+  /* Orbitron drives the entire site, per request. */
+  --font-display: 'Orbitron', ui-sans-serif, system-ui, sans-serif;
+  --font-mono: 'Orbitron', ui-monospace, 'SFMono-Regular', monospace;
+
+  --color-void: #060a12;
+  /* Monochrome white HUD — no colour whatsoever. Hierarchy comes from opacity. */
+  --color-hud: #ffffff;
+  --color-hud-soft: #ffffff;
+  --color-hud-dim: #9aa0a6; /* neutral grey */
+  --color-sun: #2f9dff; /* blue sun (3D scene, not HUD) */
+  --color-ice: #ffffff;
+}
+
+/* -------------------------------------------------------------------------- */
+/*  Base                                                                      */
+/* -------------------------------------------------------------------------- */
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background-color: var(--color-void);
+  color: var(--color-ice);
+  font-family: var(--font-display);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  overflow-x: hidden;
+}
+
+canvas {
+  touch-action: none;
+}
+
+::selection {
+  background: var(--color-hud);
+  color: #04070d;
+}
+
+/* -------------------------------------------------------------------------- */
+/*  Lenis smooth-scroll baseline                                              */
+/* -------------------------------------------------------------------------- */
+html.lenis,
+html.lenis body {
+  height: auto;
+}
+.lenis.lenis-smooth {
+  scroll-behavior: auto !important;
+}
+.lenis.lenis-smooth [data-lenis-prevent] {
+  overscroll-behavior: contain;
+}
+.lenis.lenis-stopped {
+  overflow: hidden;
+}
+.lenis.lenis-smooth iframe {
+  pointer-events: none;
+}
+
+/* -------------------------------------------------------------------------- */
+/*  Sci-fi terminal / HUD helpers                                             */
+/* -------------------------------------------------------------------------- */
+
+/* Angled "cut corner" panel silhouette (top-left + bottom-right chamfers). */
+.hud-clip {
+  clip-path: polygon(
+    18px 0,
+    100% 0,
+    100% calc(100% - 18px),
+    calc(100% - 18px) 100%,
+    0 100%,
+    0 18px
+  );
+}
+
+/* Faint scanline texture for terminal surfaces. */
+.hud-scanlines {
+  background-image: repeating-linear-gradient(
+    to bottom,
+    rgba(255, 255, 255, 0.045) 0px,
+    rgba(255, 255, 255, 0.045) 1px,
+    transparent 1px,
+    transparent 3px
+  );
+}
+
+.hud-grid {
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+  background-size: 26px 26px;
+}
+
+/* -------------------------------------------------------------------------- */
+/*  Animations                                                                */
+/* -------------------------------------------------------------------------- */
+@keyframes scroll-cue {
+  0% {
+    transform: translateY(0);
+    opacity: 0;
+  }
+  40% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(14px);
+    opacity: 0;
+  }
+}
+
+@keyframes pulse-soft {
+  0%,
+  100% {
+    opacity: 0.35;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@keyframes loading-slide {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(320%);
+  }
+}
+
+@keyframes hud-blink {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.2;
+  }
+}
+
+@keyframes hud-sweep {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+.animate-scroll-cue {
+  animation: scroll-cue 1.8s ease-in-out infinite;
+}
+.animate-pulse-soft {
+  animation: pulse-soft 2.4s ease-in-out infinite;
+}
+.animate-loading-slide {
+  animation: loading-slide 1.1s ease-in-out infinite;
+}
+.animate-hud-blink {
+  animation: hud-blink 1.4s steps(1, end) infinite;
+}
+.animate-hud-sweep {
+  animation: hud-sweep 4s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-scroll-cue,
+  .animate-pulse-soft,
+  .animate-loading-slide,
+  .animate-hud-blink,
+  .animate-hud-sweep {
+    animation: none;
+  }
+}
