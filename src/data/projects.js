@@ -79,8 +79,12 @@ export const sceneConfig = {
 
   camera: {
     fov: 50,
-    /** Zoomed-out, top-down establishing shot (progress = 0). */
-    overview: { position: [0, 84, 30], target: [0, 0, 0] },
+    /**
+     * Establishing shot (progress = 0). Pulled way back and shifted left of the
+     * system so the whole solar system reads small and sits on the right half of
+     * the screen, opposite the intro copy in the top-left.
+     */
+    overview: { position: [0, 72, 152], target: [-68, 0, 0] },
     /** Pulled-back closing shot (progress = 1) for the outro. */
     wide: { position: [4, 66, 66], target: [0, 0, -6] },
     /** How a per-planet focus keyframe is derived from the planet position. */

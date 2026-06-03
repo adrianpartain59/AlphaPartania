@@ -19,6 +19,54 @@ const PANEL_FADE = 0.14
 const WAYPOINTS = [0, ...focusMarkers.map((m) => m.progress), 1]
 
 /**
+ * Splits `text` into per-character spans that fade in quickly one after another
+ * once `on` is true. `start` offsets the whole run (seconds); `stagger` is the
+ * gap between characters (seconds).
+ */
+function SplitReveal({ text, on, start = 0, stagger = 0.018, className }) {
+  // Split into words (keeping the spaces between them) so line breaks only ever
+  // happen at spaces — never inside a word. Each character still animates in
+  // sequence via a running global index.
+  const tokens = text.split(/(\s+)/)
+  let index = 0
+  return (
+    <span className={['letter-reveal', on ? 'is-on' : '', className].filter(Boolean).join(' ')}>
+      {tokens.map((token, ti) => {
+        const isSpace = /^\s+$/.test(token)
+        if (isSpace) {
+          const i = index++
+          return (
+            <span
+              key={ti}
+              className="char char-space"
+              style={{ animationDelay: on ? `${start + i * stagger}s` : undefined }}
+            >
+              {token}
+            </span>
+          )
+        }
+        return (
+          <span key={ti} className="inline-block whitespace-nowrap">
+            {[...token].map((ch) => {
+              const i = index++
+              return (
+                <span
+                  key={i}
+                  className="char"
+                  style={{ animationDelay: on ? `${start + i * stagger}s` : undefined }}
+                >
+                  {ch}
+                </span>
+              )
+            })}
+          </span>
+        )
+      })}
+    </span>
+  )
+}
+
+/**
  * The 2D terminal layer above the WebGL canvas.
  *
  * It never re-renders on scroll: it subscribes to the store once and writes
@@ -33,6 +81,7 @@ const WAYPOINTS = [0, ...focusMarkers.map((m) => m.progress), 1]
 export default function Overlay() {
   const muted = useStore((s) => s.muted)
   const toggleMuted = useStore((s) => s.toggleMuted)
+  const heroReady = useStore((s) => s.soundPromptDone)
 
   const heroRef = useRef(null)
   const cueRef = useRef(null)
@@ -112,6 +161,13 @@ export default function Overlay() {
     scrollToProgress(focusMarkers[index].progress, 1.4)
   }
 
+  // Intro CTA: play feedback and glide from the establishing shot into the
+  // first planet, mirroring the old scroll-driven zoom.
+  const enterSystem = () => {
+    playSfx()
+    scrollToProgress(focusMarkers[0].progress, 1.8)
+  }
+
   // Step prev/next through the waypoints relative to the nearest one.
   const step = (dir) => {
     playSfx()
@@ -163,25 +219,79 @@ export default function Overlay() {
       {/* ---------------------------- Hero ----------------------------- */}
       <div
         ref={heroRef}
-        className="absolute inset-0 flex flex-col items-center justify-center px-6"
+        className="absolute inset-0 flex items-start justify-start px-8 pt-24 md:px-16 md:pt-28"
         style={{ willChange: 'opacity, transform' }}
       >
-        <HudFrame label="SYSTEM BOOT // WELCOME" className="w-full max-w-2xl text-center">
+        <div className="max-w-2xl text-left">
           <p className="text-[11px] tracking-[0.4em] text-[var(--color-hud)]">
-            A JOURNEY THROUGH SELECTED WORK
+            <SplitReveal text="ORBITAL UPLINK ESTABLISHED // CLEARANCE GRANTED" on={heroReady} start={0} stagger={0.01} />
           </p>
-          <h1 className="mt-4 text-4xl font-700 leading-[1.08] text-[var(--color-ice)] md:text-6xl">
-            EXPLORE THE
+          <h1 className="mt-4 text-4xl font-700 leading-[1.04] text-[var(--color-ice)] md:text-6xl lg:text-7xl">
+            <SplitReveal text="ENTERING" on={heroReady} start={0.45} stagger={0.03} />
             <br />
-            <span className="text-[var(--color-hud)]">SYSTEM</span> OF WORK
+            <SplitReveal
+              text="ALPHA PARTANIUM"
+              on={heroReady}
+              start={0.72}
+              stagger={0.03}
+              className="text-[var(--color-hud)]"
+            />
+            <br />
+            <SplitReveal text="SYSTEM" on={heroReady} start={1.18} stagger={0.03} />
           </h1>
-          <p className="mx-auto mt-5 max-w-md text-sm leading-relaxed text-[var(--color-ice)]/55">
-            Scroll to descend from orbit and travel to each project, suspended in
-            its own gyroscopic field around the star.
+          <p className="mt-6 max-w-md text-sm leading-relaxed text-[var(--color-ice)]/55">
+            <SplitReveal
+              text="The complete stellar archive of Adrian Partain — every project engineered, charted, and set in orbit. Each world a deployed work, awaiting your approach."
+              on={heroReady}
+              start={1.5}
+              stagger={0.006}
+            />
           </p>
-        </HudFrame>
 
-        <div ref={cueRef} className="absolute bottom-16 flex flex-col items-center gap-2">
+          <button
+            type="button"
+            onClick={enterSystem}
+            className={[
+              'enter-btn pointer-events-auto group relative mt-8 inline-flex items-center gap-3 px-8 py-3.5 text-xs tracking-[0.35em] text-[var(--color-ice)]',
+              'transition-[opacity,background-color] duration-500 ease-out',
+              heroReady ? 'opacity-100' : 'opacity-0 pointer-events-none',
+            ].join(' ')}
+            style={{ transitionDelay: heroReady ? '2.4s' : '0s' }}
+          >
+            {/* Outline whose gaps travel around the rectangle perimeter. */}
+            <svg
+              className="enter-outline pointer-events-none absolute inset-0 h-full w-full"
+              preserveAspectRatio="none"
+              aria-hidden
+            >
+              <rect
+                x="0"
+                y="0"
+                width="100%"
+                height="100%"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.5"
+                vectorEffect="non-scaling-stroke"
+              />
+            </svg>
+            ENTER THE SYSTEM
+            <svg width="18" height="14" viewBox="0 0 24 24" fill="none" aria-hidden>
+              <path
+                d="M5 12h14M13 6l6 6-6 6"
+                stroke="currentColor"
+                strokeWidth="1.6"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+          </button>
+        </div>
+
+        <div
+          ref={cueRef}
+          className="absolute bottom-16 left-1/2 flex -translate-x-1/2 flex-col items-center gap-2"
+        >
           <span className="text-[10px] tracking-[0.35em] text-[var(--color-hud)]/70">
             SCROLL
           </span>

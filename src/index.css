@@ -166,6 +166,57 @@ html.lenis body {
   }
 }
 
+/* Clean staggered fade-up for the intro copy. */
+@keyframes intro-fade-up {
+  0% {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Per-character reveal for the hero copy (letter-by-letter fade-in). */
+@keyframes letter-in {
+  0% {
+    opacity: 0;
+    transform: translateY(0.18em);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.letter-reveal .char {
+  display: inline-block;
+  opacity: 0;
+  will-change: opacity, transform;
+}
+/* Spaces stay inline (so a line can wrap there) but keep their width. */
+.letter-reveal .char-space {
+  display: inline;
+  white-space: pre;
+}
+.letter-reveal.is-on .char {
+  animation: letter-in 0.26s ease-out forwards;
+}
+@media (prefers-reduced-motion: reduce) {
+  .letter-reveal .char {
+    opacity: 1;
+    animation: none !important;
+  }
+}
+
+/* Walks the dash gaps along the rectangle outline (around the perimeter). */
+@keyframes enter-outline-travel {
+  to {
+    /* Multiple of the dash pattern (34 + 14 = 48) so the loop is seamless. */
+    stroke-dashoffset: -480;
+  }
+}
+
 .animate-scroll-cue {
   animation: scroll-cue 1.8s ease-in-out infinite;
 }
@@ -180,6 +231,46 @@ html.lenis body {
 }
 .animate-hud-sweep {
   animation: hud-sweep 4s ease-in-out infinite;
+}
+
+/* ---- Intro hero fade-in (left-aligned copy in the top-left corner) ------- */
+.intro-fade {
+  opacity: 0;
+  animation: intro-fade-up 0.9s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+/* ---- "Enter the system" button: HUD outline with travelling gaps -------- */
+.enter-btn {
+  background: rgba(255, 255, 255, 0.04);
+}
+.enter-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+/* The outline rect is dashed; animating the dash offset walks the gaps along
+   the rectangle path so the breaks travel around the perimeter (turning the
+   corners), instead of the whole outline spinning. */
+.enter-outline {
+  color: rgba(255, 255, 255, 0.85);
+  overflow: visible;
+}
+.enter-outline rect {
+  /* Long dashes, short gaps. The pattern repeats around the full perimeter. */
+  stroke-dasharray: 34 14;
+  animation: enter-outline-travel 3.5s linear infinite;
+}
+.enter-btn:hover .enter-outline rect {
+  animation-duration: 1.8s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .intro-fade {
+    animation: none;
+    opacity: 1;
+  }
+  .enter-outline rect {
+    animation: none;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

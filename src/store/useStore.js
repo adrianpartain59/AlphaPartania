@@ -22,6 +22,8 @@ export const useStore = create((set) => ({
   lenis: null,
   /** Global audio mute toggle (music + SFX). */
   muted: false,
+  /** True once the "click to enable sound" prompt has been dismissed. */
+  soundPromptDone: false,
 
   setProgress: (progress) =>
     set((state) =>
@@ -31,6 +33,7 @@ export const useStore = create((set) => ({
     ),
 
   setReady: (ready) => set({ ready }),
+  setSoundPromptDone: (soundPromptDone) => set({ soundPromptDone }),
   setLenis: (lenis) => set({ lenis }),
   setMuted: (muted) => set({ muted }),
   toggleMuted: () => set((s) => ({ muted: !s.muted })),

@@ -3,9 +3,9 @@ import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 
 /* ------------------------------ tuning ----------------------------------- */
-const COUNT = 4200
-const INNER = 95 // inner radius of the star shell
-const OUTER = 160 // outer radius
+const COUNT = 1500
+const INNER = 260 // inner radius of the star shell — kept far from the camera
+const OUTER = 380 // outer radius
 
 /** Soft round sprite so each star reads as a glowing dot, not a square. */
 function useSpriteTexture() {
@@ -88,13 +88,13 @@ export default function Starfield() {
       <points geometry={geometry} frustumCulled={false}>
         <pointsMaterial
           map={sprite}
-          size={0.7}
+          size={1.4}
           sizeAttenuation
           vertexColors
           transparent
           depthWrite={false}
           blending={THREE.AdditiveBlending}
-          opacity={0.9}
+          opacity={0.75}
         />
       </points>
     </group>

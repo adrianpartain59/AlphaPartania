@@ -3,6 +3,7 @@ import { sceneConfig, projects } from './data/projects'
 import Experience from './three/Experience'
 import Overlay from './ui/Overlay'
 import Loader from './ui/Loader'
+import SoundPrompt from './ui/SoundPrompt'
 import { useSmoothScroll } from './hooks/useSmoothScroll'
 import { useAudio } from './hooks/useAudio'
 
@@ -37,7 +38,7 @@ export default function App() {
             position: sceneConfig.camera.overview.position,
             fov: sceneConfig.camera.fov,
             near: 0.1,
-            far: 400,
+            far: 700,
           }}
         >
           <Experience />
@@ -46,6 +47,7 @@ export default function App() {
 
       <Overlay />
       <Loader />
+      <SoundPrompt />
 
       {/* Empty scroll track — its height defines how far you can travel. */}
       <div
