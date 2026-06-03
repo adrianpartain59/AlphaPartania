@@ -2,7 +2,7 @@ import { Canvas } from '@react-three/fiber'
 import { sceneConfig, projects } from './data/projects'
 import Experience from './three/Experience'
 import Overlay from './ui/Overlay'
-import Loader from './ui/Loader'
+import LoadingScreen from './ui/LoadingScreen'
 import SoundPrompt from './ui/SoundPrompt'
 import { useSmoothScroll } from './hooks/useSmoothScroll'
 import { useAudio } from './hooks/useAudio'
@@ -12,7 +12,7 @@ import { useAudio } from './hooks/useAudio'
  *
  *   • A fixed, full-viewport <Canvas> pinned behind everything (z-0).
  *   • A pointer-events-none HTML <Overlay> on top (z-10).
- *   • A <Loader> curtain (z-50) for the first paint.
+ *   • A <LoadingScreen> curtain (z-50) for the first paint.
  *   • A tall, empty "scroll track" that gives the document its scrollable
  *     height — Lenis smooths it and the camera reads the resulting progress.
  *
@@ -46,7 +46,7 @@ export default function App() {
       </div>
 
       <Overlay />
-      <Loader />
+      <LoadingScreen />
       <SoundPrompt />
 
       {/* Empty scroll track — its height defines how far you can travel. */}

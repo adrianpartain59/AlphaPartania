@@ -1,5 +1,6 @@
 import musicUrl from '../assets/audio/PartaniaTrack1.mp3'
 import sfxUrl from '../assets/audio/SciFiButtonSFX.wav'
+import typingUrl from '../assets/audio/Sci-FiTyping.wav'
 
 /**
  * Tiny audio engine for the experience.
@@ -10,17 +11,21 @@ import sfxUrl from '../assets/audio/SciFiButtonSFX.wav'
  *     never blares before everything is in.
  *   • SFX (SciFiButtonSFX) — decoded once via the Web Audio API so it can fire
  *     instantly and overlap on rapid clicks.
+ *   • Typing SFX (Sci-FiTyping) — looped while the hero copy types in.
  *   • A single global mute that silences both.
  */
 
 const MUSIC_VOLUME = 0.32
 const SFX_VOLUME = 0.6
+const TYPING_VOLUME = 0.45
 const FADE_MS = 1800
 
 let music = null
 let ctx = null
 let sfxBuffer = null
+let typingBuffer = null
 let sfxPromise = null
+let typingSource = null
 
 let ready = false
 let interacted = false
@@ -73,18 +78,27 @@ function tryStartMusic() {
   else onPlaying()
 }
 
-/** Decode the SFX up front so the first click is instant. */
+function decodeBuffer(url) {
+  const c = ensureCtx()
+  if (!c) return Promise.resolve()
+  return fetch(url)
+    .then((r) => r.arrayBuffer())
+    .then((b) => c.decodeAudioData(b))
+}
+
+/** Decode SFX up front so the first click / typing cue is instant. */
 export function loadSfx() {
   if (sfxPromise) return sfxPromise
   const c = ensureCtx()
   if (!c) return Promise.resolve()
-  sfxPromise = fetch(sfxUrl)
-    .then((r) => r.arrayBuffer())
-    .then((b) => c.decodeAudioData(b))
-    .then((buf) => {
+  sfxPromise = Promise.all([
+    decodeBuffer(sfxUrl).then((buf) => {
       sfxBuffer = buf
-    })
-    .catch(() => {})
+    }),
+    decodeBuffer(typingUrl).then((buf) => {
+      typingBuffer = buf
+    }),
+  ]).catch(() => {})
   return sfxPromise
 }
 
@@ -99,6 +113,33 @@ export function playSfx() {
   gain.gain.value = SFX_VOLUME
   src.connect(gain).connect(c.destination)
   src.start(0)
+}
+
+/** Looped typing bed for the hero typewriter (call `stopTypingSfx` when done). */
+export function playTypingSfx() {
+  if (muted) return
+  const c = ensureCtx()
+  if (!c || !typingBuffer) return
+  if (c.state === 'suspended') c.resume()
+  stopTypingSfx()
+  typingSource = c.createBufferSource()
+  typingSource.buffer = typingBuffer
+  typingSource.loop = true
+  const gain = c.createGain()
+  gain.gain.value = TYPING_VOLUME
+  typingSource.connect(gain).connect(c.destination)
+  typingSource.start(0)
+}
+
+export function stopTypingSfx() {
+  if (!typingSource) return
+  try {
+    typingSource.stop(0)
+  } catch {
+    /* already stopped */
+  }
+  typingSource.disconnect()
+  typingSource = null
 }
 
 export function setReady(value) {
@@ -117,6 +158,7 @@ export function markInteracted() {
 export function setMuted(value) {
   muted = value
   if (music) music.muted = value
+  if (muted) stopTypingSfx()
 }
 
 export function isMusicStarted() {

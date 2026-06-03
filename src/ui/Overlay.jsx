@@ -1,7 +1,7 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { projects, focusMarkers } from '../data/projects'
 import { useStore } from '../store/useStore'
-import { playSfx } from '../audio/audio'
+import { playSfx, playTypingSfx, stopTypingSfx } from '../audio/audio'
 import ScreenFrame from './ScreenFrame'
 import HudFrame from './HudFrame'
 
@@ -18,30 +18,61 @@ const PANEL_FADE = 0.14
 // overview → each project → outro.
 const WAYPOINTS = [0, ...focusMarkers.map((m) => m.progress), 1]
 
+/** Longest hero typewriter run ends ~2.2s after `soundPromptDone`. */
+const HERO_TYPING_MS = 2400
+
 /**
- * Splits `text` into per-character spans that fade in quickly one after another
- * once `on` is true. `start` offsets the whole run (seconds); `stagger` is the
- * gap between characters (seconds).
+ * Types `text` out character-by-character once `on` is true. Words stay
+ * unbroken for wrapping; spaces remain in the flow.
  */
-function SplitReveal({ text, on, start = 0, stagger = 0.018, className }) {
-  // Split into words (keeping the spaces between them) so line breaks only ever
-  // happen at spaces — never inside a word. Each character still animates in
-  // sequence via a running global index.
-  const tokens = text.split(/(\s+)/)
+function TypewriterReveal({ text, on, start = 0, stagger = 0.018, className }) {
+  const tokens = useMemo(() => text.split(/(\s+)/), [text])
+  const charCount = useMemo(() => {
+    let n = 0
+    for (const token of tokens) n += token.length
+    return n
+  }, [tokens])
+
+  const [visible, setVisible] = useState(0)
+
+  useEffect(() => {
+    if (!on) {
+      setVisible(0)
+      return
+    }
+    setVisible(0)
+    let interval
+    const timeout = window.setTimeout(() => {
+      let i = 0
+      interval = window.setInterval(() => {
+        i += 1
+        setVisible(i)
+        if (i >= charCount && interval) window.clearInterval(interval)
+      }, stagger * 1000)
+    }, start * 1000)
+    return () => {
+      window.clearTimeout(timeout)
+      if (interval) window.clearInterval(interval)
+    }
+  }, [on, start, stagger, charCount])
+
   let index = 0
   return (
-    <span className={['letter-reveal', on ? 'is-on' : '', className].filter(Boolean).join(' ')}>
+    <span className={className}>
       {tokens.map((token, ti) => {
         const isSpace = /^\s+$/.test(token)
         if (isSpace) {
-          const i = index++
+          const chars = [...token]
           return (
-            <span
-              key={ti}
-              className="char char-space"
-              style={{ animationDelay: on ? `${start + i * stagger}s` : undefined }}
-            >
-              {token}
+            <span key={ti} className="whitespace-pre">
+              {chars.map((ch) => {
+                const i = index++
+                return (
+                  <span key={i} className={i < visible ? '' : 'invisible'}>
+                    {ch}
+                  </span>
+                )
+              })}
             </span>
           )
         }
@@ -50,11 +81,7 @@ function SplitReveal({ text, on, start = 0, stagger = 0.018, className }) {
             {[...token].map((ch) => {
               const i = index++
               return (
-                <span
-                  key={i}
-                  className="char"
-                  style={{ animationDelay: on ? `${start + i * stagger}s` : undefined }}
-                >
+                <span key={i} className={i < visible ? '' : 'invisible'}>
                   {ch}
                 </span>
               )
@@ -82,6 +109,16 @@ export default function Overlay() {
   const muted = useStore((s) => s.muted)
   const toggleMuted = useStore((s) => s.toggleMuted)
   const heroReady = useStore((s) => s.soundPromptDone)
+
+  useEffect(() => {
+    if (!heroReady) return
+    playTypingSfx()
+    const t = window.setTimeout(() => stopTypingSfx(), HERO_TYPING_MS)
+    return () => {
+      window.clearTimeout(t)
+      stopTypingSfx()
+    }
+  }, [heroReady])
 
   const heroRef = useRef(null)
   const cueRef = useRef(null)
@@ -224,12 +261,12 @@ export default function Overlay() {
       >
         <div className="max-w-2xl text-left">
           <p className="text-[11px] tracking-[0.4em] text-[var(--color-hud)]">
-            <SplitReveal text="ORBITAL UPLINK ESTABLISHED // CLEARANCE GRANTED" on={heroReady} start={0} stagger={0.01} />
+            <TypewriterReveal text="ORBITAL UPLINK ESTABLISHED // CLEARANCE GRANTED" on={heroReady} start={0} stagger={0.01} />
           </p>
           <h1 className="mt-4 text-4xl font-700 leading-[1.04] text-[var(--color-ice)] md:text-6xl lg:text-7xl">
-            <SplitReveal text="ENTERING" on={heroReady} start={0.45} stagger={0.03} />
+            <TypewriterReveal text="ENTERING" on={heroReady} start={0.45} stagger={0.03} />
             <br />
-            <SplitReveal
+            <TypewriterReveal
               text="ALPHA PARTANIUM"
               on={heroReady}
               start={0.72}
@@ -237,10 +274,10 @@ export default function Overlay() {
               className="text-[var(--color-hud)]"
             />
             <br />
-            <SplitReveal text="SYSTEM" on={heroReady} start={1.18} stagger={0.03} />
+            <TypewriterReveal text="SYSTEM" on={heroReady} start={1.18} stagger={0.03} />
           </h1>
           <p className="mt-6 max-w-md text-sm leading-relaxed text-[var(--color-ice)]/55">
-            <SplitReveal
+            <TypewriterReveal
               text="The complete stellar archive of Adrian Partain — every project engineered, charted, and set in orbit. Each world a deployed work, awaiting your approach."
               on={heroReady}
               start={1.5}

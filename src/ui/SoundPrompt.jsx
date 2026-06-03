@@ -9,10 +9,15 @@ import { useStore } from '../store/useStore'
  * Dismisses on the first pointer/key interaction, or automatically after 4s.
  */
 export default function SoundPrompt() {
+  const loadingDone = useStore((s) => s.loadingDone)
   const [visible, setVisible] = useState(true)
   const setSoundPromptDone = useStore((s) => s.setSoundPromptDone)
 
   useEffect(() => {
+    // Hold off entirely until the loading animation has finished, so the prompt
+    // (and its auto-dismiss timer) only kicks in once the loader is gone.
+    if (!loadingDone) return
+
     const dismiss = () => {
       setVisible(false)
       setSoundPromptDone(true)
@@ -26,7 +31,9 @@ export default function SoundPrompt() {
       window.clearTimeout(timer)
       events.forEach((e) => window.removeEventListener(e, dismiss))
     }
-  }, [setSoundPromptDone])
+  }, [loadingDone, setSoundPromptDone])
+
+  if (!loadingDone) return null
 
   return (
     <div

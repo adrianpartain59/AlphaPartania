@@ -16,6 +16,8 @@ export const useStore = create((set) => ({
   progress: 0,
   /** True once the WebGL scene has loaded its first frame. */
   ready: false,
+  /** True once the loading screen has finished and been removed. */
+  loadingDone: false,
   /** True the moment the user scrolls — used to retire the hero scroll cue. */
   hasScrolled: false,
   /** The live Lenis instance, so UI (e.g. nav dots) can smooth-scroll. */
@@ -33,6 +35,7 @@ export const useStore = create((set) => ({
     ),
 
   setReady: (ready) => set({ ready }),
+  setLoadingDone: (loadingDone) => set({ loadingDone }),
   setSoundPromptDone: (soundPromptDone) => set({ soundPromptDone }),
   setLenis: (lenis) => set({ lenis }),
   setMuted: (muted) => set({ muted }),
