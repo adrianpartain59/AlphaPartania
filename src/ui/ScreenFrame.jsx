@@ -107,9 +107,6 @@ export default function ScreenFrame() {
       {/* ---- Top-left: crosshair + dotted tick ---- */}
       <Plus className="left-12 top-14" />
       <Dots className="left-[34%] top-[15px]" count={8} />
-
-      {/* ---- Right edge: dotted tick ---- */}
-      <Dots className="right-[18px] top-[58%] flex-col gap-1.5" count={6} />
     </div>
   )
 }

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { projects, focusMarkers } from '../data/projects'
 import { useStore } from '../store/useStore'
-import { playSfx, playTypingSfx, stopTypingSfx } from '../audio/audio'
+import { playSfx, playTypingSfx, stopTypingSfx, getMusicLevels } from '../audio/audio'
 import ScreenFrame from './ScreenFrame'
 import SystemHud, { WireGlobe } from './SystemHud'
 import HudButton from './HudButton'
@@ -103,6 +103,60 @@ function TypewriterReveal({ text, on, start = 0, stagger = 0.018, className }) {
   )
 }
 
+/** Number of bands in the audio equalizer (low / mid / high). */
+const EQ_BANDS = 3
+
+/**
+ * Sci-fi audio equalizer driven by the live music spectrum. When the track is
+ * silent (muted / not yet started) the bars rest at zero and it reads AUDIO OFF.
+ * Reads levels in its own rAF and writes straight to the DOM (no re-renders).
+ */
+function AudioMeter() {
+  const barRefs = useRef([])
+  const statusRef = useRef(null)
+  const playingRef = useRef(false)
+
+  useEffect(() => {
+    let raf = 0
+    const tick = () => {
+      const levels = getMusicLevels(EQ_BANDS)
+      const on = !!levels
+      if (on !== playingRef.current) {
+        playingRef.current = on
+        if (statusRef.current) statusRef.current.textContent = on ? 'AUDIO' : 'AUDIO OFF'
+      }
+      for (let i = 0; i < EQ_BANDS; i++) {
+        const el = barRefs.current[i]
+        if (el) el.style.transform = `scaleY(${0.07 + (levels ? levels[i] : 0) * 0.93})`
+      }
+      raf = requestAnimationFrame(tick)
+    }
+    raf = requestAnimationFrame(tick)
+    return () => cancelAnimationFrame(raf)
+  }, [])
+
+  return (
+    <div className="flex flex-col items-end gap-2">
+      <div className="flex h-40 items-end gap-3 md:h-44">
+        {Array.from({ length: EQ_BANDS }).map((_, i) => (
+          <span
+            key={i}
+            ref={(el) => (barRefs.current[i] = el)}
+            className="w-[10px] bg-white/80 md:w-[11px]"
+            style={{ height: '100%', transformOrigin: 'bottom', transform: 'scaleY(0.06)', transition: 'transform 0.07s linear' }}
+          />
+        ))}
+      </div>
+      <span
+        ref={statusRef}
+        className="whitespace-nowrap text-right text-[8px] tracking-[0.3em] text-white/40 md:text-[9px]"
+      >
+        AUDIO OFF
+      </span>
+    </div>
+  )
+}
+
 /**
  * The 2D terminal layer above the WebGL canvas.
  *
@@ -133,7 +187,6 @@ export default function Overlay() {
   const heroRef = useRef(null)
   const cueRef = useRef(null)
   const panelRefs = useRef([])
-  const dotRefs = useRef([])
   const barRef = useRef(null)
   const counterRef = useRef(null)
   const outroRef = useRef(null)
@@ -174,14 +227,6 @@ export default function Overlay() {
           const x = (1 - visible) * (projects[i].side === 'left' ? -30 : 30)
           panel.style.transform = `translate3d(${x}px, ${y}px, 0)`
         }
-
-        const dot = dotRefs.current[i]
-        if (dot) {
-          const on = 1 - smoothstep(PANEL_FULL, PANEL_FADE * 1.4, absDelta)
-          dot.style.opacity = String(0.3 + on * 0.7)
-          dot.style.transform = `scale(${0.7 + on * 0.9}) rotate(45deg)`
-          dot.style.backgroundColor = on > 0.5 ? '#ffffff' : 'transparent'
-        }
       })
 
       if (outroRef.current) {
@@ -221,11 +266,6 @@ export default function Overlay() {
     lenis.scrollTo(target * limit, { duration })
   }
 
-  const scrollToSection = (index) => {
-    playSfx()
-    scrollToProgress(focusMarkers[index].progress, 1.4)
-  }
-
   // Intro CTA: play feedback and glide from the establishing shot into the
   // first planet, mirroring the old scroll-driven zoom.
   const enterSystem = () => {
@@ -253,6 +293,10 @@ export default function Overlay() {
   return (
     <div className="pointer-events-none fixed inset-0 z-10 select-none">
       <ScreenFrame />
+
+      <p className="absolute right-8 top-[22px] text-right text-[10px] tracking-[0.22em] text-white/45 md:right-10 md:top-6 md:text-[11px]">
+        Made by Adrian Partain
+      </p>
 
       {/* ---- Bounding box framing the system (bottom-right): only a top edge,
               left edge and chamfered top-left corner — the open right/bottom
@@ -309,32 +353,35 @@ export default function Overlay() {
         <SystemHud chamfer={SYS_CHAMFER} tabAt={SYS_TAB_AT} />
       </div>
 
-      {/* ----------------------- Mute toggle (top-right) --------------- */}
-      <button
-        type="button"
-        onClick={toggleMuted}
-        aria-label={muted ? 'Unmute audio' : 'Mute audio'}
-        aria-pressed={muted}
-        className="pointer-events-auto absolute right-16 top-[26px] flex h-9 w-9 items-center justify-center border border-white/40 text-white/80 transition-colors duration-200 hover:border-white/80 hover:text-white"
-      >
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
-          <path
-            d="M4 9v6h4l5 4V5L8 9H4z"
-            fill="currentColor"
-            stroke="currentColor"
-            strokeWidth="1.4"
-            strokeLinejoin="round"
-          />
-          {muted ? (
-            <path d="M16 9l5 6M21 9l-5 6" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-          ) : (
-            <>
-              <path d="M16.5 8.5a5 5 0 010 7" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-              <path d="M19 6a8.5 8.5 0 010 12" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-            </>
-          )}
-        </svg>
-      </button>
+      {/* -------------- Audio: mute toggle + equalizer (right edge) ----- */}
+      <div className="absolute right-10 top-[48%] flex -translate-y-1/2 flex-col items-end gap-3 md:right-12">
+        <button
+          type="button"
+          onClick={toggleMuted}
+          aria-label={muted ? 'Unmute audio' : 'Mute audio'}
+          aria-pressed={muted}
+          className="pointer-events-auto flex h-9 w-9 items-center justify-center border border-white/40 text-white/80 transition-colors duration-200 hover:border-white/80 hover:text-white"
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
+            <path
+              d="M4 9v6h4l5 4V5L8 9H4z"
+              fill="currentColor"
+              stroke="currentColor"
+              strokeWidth="1.4"
+              strokeLinejoin="round"
+            />
+            {muted ? (
+              <path d="M16 9l5 6M21 9l-5 6" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+            ) : (
+              <>
+                <path d="M16.5 8.5a5 5 0 010 7" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+                <path d="M19 6a8.5 8.5 0 010 12" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+              </>
+            )}
+          </svg>
+        </button>
+        <AudioMeter />
+      </div>
 
       {/* ------- Persistent "next planet" read-out (whole journey) ------ */}
       <div
@@ -505,25 +552,6 @@ export default function Overlay() {
           </a>
         </HudFrame>
       </div>
-
-      {/* ----------------------- Right-edge nav ------------------------ */}
-      <nav className="pointer-events-auto absolute right-9 top-1/2 hidden -translate-y-1/2 flex-col items-center gap-5 md:flex">
-        {projects.map((project, i) => (
-          <button
-            key={project.id}
-            type="button"
-            aria-label={`Travel to ${project.name}`}
-            onClick={() => scrollToSection(i)}
-            className="group flex items-center justify-center p-1.5"
-          >
-            <span
-              ref={(el) => (dotRefs.current[i] = el)}
-              className="h-2.5 w-2.5 border border-white/70 transition-transform duration-200"
-              style={{ transform: 'scale(0.7) rotate(45deg)' }}
-            />
-          </button>
-        ))}
-      </nav>
 
       {/* ------------- Prev / next project nav (near scroll cue) -------- */}
       <div className="pointer-events-auto absolute bottom-12 left-1/2 flex -translate-x-1/2 items-center gap-4">

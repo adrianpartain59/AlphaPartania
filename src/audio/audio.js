@@ -189,6 +189,33 @@ export function isMusicStarted() {
 }
 
 /**
+ * Per-band music levels (0→1) for an equalizer visual. Returns `null` when the
+ * track isn't audible (not started or muted) so the UI can show an "off" state.
+ * Bands are log-spaced across the musical range so lows/mids/highs each move.
+ */
+export function getMusicLevels(bandCount = 7) {
+  if (!started || muted || !musicAnalyser || !musicBins) return null
+
+  musicAnalyser.getByteFrequencyData(musicBins)
+  const usable = Math.floor(musicBins.length * 0.55) // ignore the airy top end
+  const out = new Array(bandCount)
+
+  for (let b = 0; b < bandCount; b++) {
+    const lo = Math.floor(Math.pow(b / bandCount, 1.7) * usable) + 1
+    const hi = Math.max(lo + 1, Math.floor(Math.pow((b + 1) / bandCount, 1.7) * usable))
+    let sum = 0
+    let n = 0
+    for (let i = lo; i < hi && i < musicBins.length; i++) {
+      sum += musicBins[i]
+      n++
+    }
+    const avg = n ? sum / n / 255 : 0
+    out[b] = Math.min(1, Math.pow(avg, 0.78) * 1.45)
+  }
+  return out
+}
+
+/**
  * Current kick energy, normalised 0→1 and smoothed for visuals.
  * Called from the render loop, so it does not touch React state.
  */
