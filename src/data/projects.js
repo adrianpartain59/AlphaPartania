@@ -61,6 +61,15 @@ export const projects = [
 /* -------------------------------------------------------------------------- */
 /*  Scene configuration                                                       */
 /* -------------------------------------------------------------------------- */
+
+/**
+ * Scroll progress at which the opening "fly through the bottom-right HUD"
+ * sequence ends. Over [0, PASSTHROUGH_END] the camera slides the solar system
+ * to screen centre and dollies in while the HUD frame scales up and passes the
+ * camera; the detail reveal and planet journey only begin afterwards.
+ */
+export const PASSTHROUGH_END = 0.1
+
 export const sceneConfig = {
   background: '#060a12',
 
@@ -78,12 +87,13 @@ export const sceneConfig = {
   },
 
   /**
-   * Wireframe → full-detail reveal window (in scroll progress). At the
-   * establishing shot the system reads as bare white lines + outlined spheres;
-   * by the time the camera closes on the first planet it has crossfaded into
-   * the full coloured scene.
+   * Wireframe → full-detail reveal window (in scroll progress). The detail
+   * reveal is held off until the camera has "passed through" the bottom-right
+   * HUD (see PASSTHROUGH_END) — during the fly-through the system keeps its bare
+   * wireframe look, then crossfades into the full coloured scene as the camera
+   * closes on the first planet.
    */
-  reveal: { start: 0.015, end: 0.22 },
+  reveal: { start: PASSTHROUGH_END + 0.005, end: 0.28 },
 
   camera: {
     fov: 50,
@@ -93,6 +103,12 @@ export const sceneConfig = {
      * the screen, opposite the intro copy in the top-left.
      */
     overview: { position: [0, 95, 200], target: [-96, 45, 0] },
+    /**
+     * End of the HUD fly-through (progress = PASSTHROUGH_END). The system has
+     * slid to screen centre and the camera has dollied a little closer, but it
+     * still reads as the top-down wireframe overview (reveal is still 0).
+     */
+    centered: { position: [0, 78, 150], target: [0, 22, 0] },
     /** Pulled-back closing shot (progress = 1) for the outro. */
     wide: { position: [4, 66, 66], target: [0, 0, -6] },
     /** How a per-planet focus keyframe is derived from the planet position. */
@@ -132,6 +148,7 @@ export function planetOrbitPosition(project, t, out = [0, 0, 0]) {
  */
 export const cameraStops = [
   { progress: 0, type: 'static', ...sceneConfig.camera.overview },
+  { progress: PASSTHROUGH_END, type: 'static', ...sceneConfig.camera.centered },
   ...projects.map((p) => ({
     progress: p.focusProgress,
     type: 'planet',

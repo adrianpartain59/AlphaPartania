@@ -1,8 +1,10 @@
-import { Suspense, useRef } from 'react'
-import { useFrame } from '@react-three/fiber'
+import { Suspense, useMemo, useRef } from 'react'
+import { useFrame, useThree } from '@react-three/fiber'
 import { Preload } from '@react-three/drei'
+import * as THREE from 'three'
 import { projects, sceneConfig, revealFactor } from '../data/projects'
 import { useStore } from '../store/useStore'
+import { systemAnchor } from './systemAnchor'
 import Lighting from './Lighting'
 import Starfield from './Starfield'
 import DustRings from './DustRings'
@@ -42,6 +44,31 @@ function OrbitPaths() {
   ))
 }
 
+/**
+ * Projects the solar-system centre (world origin) to screen pixels every frame
+ * and records the camera distance, writing into the shared `systemAnchor` the
+ * HTML overlay reads to keep the bottom-right HUD frame glued to the 3D system.
+ */
+function SystemAnchor() {
+  const camera = useThree((s) => s.camera)
+  const size = useThree((s) => s.size)
+  const origin = useMemo(() => new THREE.Vector3(0, 0, 0), [])
+  const ndc = useMemo(() => new THREE.Vector3(), [])
+
+  useFrame(() => {
+    const dist = camera.position.distanceTo(origin)
+    if (!systemAnchor.ready) systemAnchor.dist0 = dist
+    systemAnchor.dist = dist
+
+    ndc.copy(origin).project(camera)
+    systemAnchor.x = (ndc.x * 0.5 + 0.5) * size.width
+    systemAnchor.y = (-ndc.y * 0.5 + 0.5) * size.height
+    systemAnchor.ready = true
+  })
+
+  return null
+}
+
 /** Flips `ready` after the first couple of frames (heavy shaders compiled). */
 function SceneReady() {
   const frames = useRef(0)
@@ -60,6 +87,7 @@ export default function Experience() {
       <color attach="background" args={[sceneConfig.background]} />
 
       <CameraRig />
+      <SystemAnchor />
 
       <Suspense fallback={null}>
         <Lighting />

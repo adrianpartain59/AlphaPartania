@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { projects, focusMarkers } from '../data/projects'
+import { projects, focusMarkers, PASSTHROUGH_END } from '../data/projects'
 import { useStore } from '../store/useStore'
+import { systemAnchor } from '../three/systemAnchor'
 import { playSfx, playTypingSfx, stopTypingSfx, getMusicLevels } from '../audio/audio'
 import ScreenFrame from './ScreenFrame'
 import SystemHud, { WireGlobe } from './SystemHud'
@@ -197,15 +198,12 @@ export default function Overlay() {
   useEffect(() => {
     const apply = (progress) => {
       if (heroRef.current) {
-        const heroOut = smoothstep(0.01, 0.11, progress)
+        const heroOut = smoothstep(0.004, 0.035, progress)
         heroRef.current.style.opacity = String(1 - heroOut)
         heroRef.current.style.transform = `translateY(${heroOut * -40}px)`
       }
       if (cueRef.current) {
         cueRef.current.style.opacity = String(1 - smoothstep(0, 0.04, progress))
-      }
-      if (systemBoxRef.current) {
-        systemBoxRef.current.style.opacity = String(1 - smoothstep(0.004, 0.035, progress))
       }
 
       let activeIndex = 0
@@ -256,6 +254,71 @@ export default function Overlay() {
 
     apply(useStore.getState().progress)
     return useStore.subscribe((state) => apply(state.progress))
+  }, [])
+
+  // -------- Pass-through: fly the camera *through* the bottom-right HUD ------
+  // The box is pinned to the live 3D system: every frame we read the projected
+  // system centre + camera distance (written by <SystemAnchor> inside the
+  // canvas) and translate/scale the box so it stays glued to the solar system
+  // as the camera slides it to centre and dollies in. The frame scales up,
+  // sweeps past the screen edges and fades out — the "pass-through". Driven in
+  // its own rAF (never re-renders) so it stays in lock-step with the WebGL.
+  useEffect(() => {
+    const box = systemBoxRef.current
+    if (!box) return
+
+    let raf = 0
+    let restX = 0
+    let restY = 0
+    let restDist = 0
+    let calibrated = false
+
+    // How far past the projection-matched scale the frame pushes, to sell the
+    // parallax of flying through a pane that sits nearer than the system.
+    const EXTRA_SCALE = 2.2
+    // Opacity hold/fade across the band (as a fraction of [0, PASSTHROUGH_END]).
+    const FADE_START = 0.4
+    const FADE_END = 0.95
+    // Calibrate the rest pose only once the scene is settled at the very top.
+    const REST_EPS = 0.0015
+
+    const tick = () => {
+      raf = requestAnimationFrame(tick)
+      if (!systemAnchor.ready) return
+
+      const { progress, loadingDone } = useStore.getState()
+
+      // Calibrate the rest pose (anchor position + distance + transform-origin)
+      // exactly once, when the scene has finished loading and is parked at the
+      // top. Capturing it here (against the still-untransformed box) gives the
+      // true resting projection without latching onto a loading-time value.
+      // We never re-snap afterwards: the box just tracks the damped anchor, so
+      // scrolling back — even fast — eases home smoothly instead of popping.
+      if (!calibrated) {
+        if (!loadingDone || progress >= REST_EPS) return
+        const rect = box.getBoundingClientRect()
+        restX = systemAnchor.x
+        restY = systemAnchor.y
+        restDist = systemAnchor.dist
+        box.style.transformOrigin = `${restX - rect.left}px ${restY - rect.top}px`
+        calibrated = true
+      }
+
+      const bandT = clamp(progress / PASSTHROUGH_END, 0, 1)
+
+      const baseScale = restDist > 0 ? restDist / systemAnchor.dist : 1
+      const scale = baseScale * (1 + bandT * EXTRA_SCALE)
+      const dx = systemAnchor.x - restX
+      const dy = systemAnchor.y - restY
+
+      const opacity = 1 - smoothstep(FADE_START, FADE_END, bandT)
+
+      box.style.opacity = String(opacity)
+      box.style.transform = `translate(${dx}px, ${dy}px) scale(${scale})`
+    }
+
+    raf = requestAnimationFrame(tick)
+    return () => cancelAnimationFrame(raf)
   }, [])
 
   const scrollToProgress = (target, duration = 1.3) => {
@@ -311,7 +374,7 @@ export default function Overlay() {
           right: 16,
           bottom: 16,
           filter: 'drop-shadow(0 0 4px rgba(255,255,255,0.4))',
-          willChange: 'opacity',
+          willChange: 'opacity, transform',
         }}
       >
         {/* top edge: lower run, then an early chamfer up to a raised run that
@@ -348,6 +411,30 @@ export default function Overlay() {
             transform: 'rotate(-45deg)',
           }}
         />
+
+        {/* ---- bottom + right edges: at rest these sit at the box's
+                right:16 / bottom:16, exactly over the outer ScreenFrame
+                perimeter (inset-4 = 16px), so they're hidden. As the box
+                scales up and slides to centre during the pass-through they
+                separate from the outer frame and sweep past the screen,
+                closing the small frame into a full enclosure mid-zoom. ---- */}
+        {/* right edge (top tab corner down to the bottom-right chamfer) */}
+        <span className="absolute right-0" style={{ top: -SYS_CHAMFER, bottom: SYS_CHAMFER, width: 2, background: SYS_LINE }} />
+        {/* chamfered bottom-right corner */}
+        <span
+          className="absolute"
+          style={{
+            right: 0,
+            bottom: SYS_CHAMFER,
+            width: SYS_DIAG,
+            height: 2,
+            background: SYS_LINE,
+            transformOrigin: 'right center',
+            transform: 'rotate(-45deg)',
+          }}
+        />
+        {/* bottom edge (runs to the bottom-right chamfer) */}
+        <span className="absolute bottom-0" style={{ left: 0, right: SYS_CHAMFER, height: 2, background: SYS_LINE }} />
 
         {/* sci-fi instrument cluster around the frame */}
         <SystemHud chamfer={SYS_CHAMFER} tabAt={SYS_TAB_AT} />
