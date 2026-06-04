@@ -9,6 +9,8 @@ const FRAME = 384
 const FRAMES = 96
 const COLS = 12
 const FPS = 30
+/* Frames [LOOP_START, FRAMES) are a seamless orbit loop (matches bake-loader). */
+const LOOP_START = 48
 
 /* Stack build timing — keep in sync with bake-loader.mjs animation tuning. */
 const LAYER_COUNT = 4
@@ -154,7 +156,11 @@ export default function LoadingScreen() {
     const tick = (now) => {
       if (!start) start = now
       const elapsed = now - start
-      const frame = Math.min(Math.floor((elapsed / 1000) * FPS), FRAMES - 1)
+      // Play the build once, then loop the orbit segment so the planets keep
+      // orbiting for as long as the loading screen is up.
+      const raw = Math.floor((elapsed / 1000) * FPS)
+      const frame =
+        raw < FRAMES ? raw : LOOP_START + ((raw - FRAMES) % (FRAMES - LOOP_START))
       drawFrame(frame)
 
       if (!stackDoneRef.current && elapsed >= STACK_BUILD_MS) {
@@ -162,7 +168,7 @@ export default function LoadingScreen() {
         setStackComplete(true)
       }
 
-      if (frame < FRAMES - 1) raf = requestAnimationFrame(tick)
+      raf = requestAnimationFrame(tick)
     }
 
     img.onload = () => {
