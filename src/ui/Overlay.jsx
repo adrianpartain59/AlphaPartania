@@ -185,6 +185,7 @@ export default function Overlay() {
     }
   }, [heroReady])
 
+  const screenFrameRef = useRef(null)
   const heroRef = useRef(null)
   const cueRef = useRef(null)
   const panelRefs = useRef([])
@@ -197,6 +198,11 @@ export default function Overlay() {
 
   useEffect(() => {
     const apply = (progress) => {
+      if (screenFrameRef.current) {
+        // The outer edge frame is part of the landing dressing — fade it out
+        // together with the hero copy the instant you start scrolling.
+        screenFrameRef.current.style.opacity = String(1 - smoothstep(0.004, 0.035, progress))
+      }
       if (heroRef.current) {
         const heroOut = smoothstep(0.004, 0.035, progress)
         heroRef.current.style.opacity = String(1 - heroOut)
@@ -333,7 +339,7 @@ export default function Overlay() {
   // first planet, mirroring the old scroll-driven zoom.
   const enterSystem = () => {
     playSfx()
-    scrollToProgress(focusMarkers[0].progress, 1.8)
+    scrollToProgress(focusMarkers[0].progress, 3.6)
   }
 
   // Step prev/next through the waypoints relative to the nearest one.
@@ -350,12 +356,12 @@ export default function Overlay() {
       }
     })
     const next = clamp(idx + dir, 0, WAYPOINTS.length - 1)
-    scrollToProgress(WAYPOINTS[next], 1.2)
+    scrollToProgress(WAYPOINTS[next], 2.4)
   }
 
   return (
     <div className="pointer-events-none fixed inset-0 z-10 select-none">
-      <ScreenFrame />
+      <ScreenFrame ref={screenFrameRef} />
 
       <p className="absolute right-8 top-[22px] text-right text-[10px] tracking-[0.22em] text-white/45 md:right-10 md:top-6 md:text-[11px]">
         Made by Adrian Partain
@@ -485,30 +491,20 @@ export default function Overlay() {
         className="absolute inset-0 flex items-start justify-start px-8 pt-24 md:px-16 md:pt-28"
         style={{ willChange: 'opacity, transform' }}
       >
-        <div className="max-w-2xl text-left">
+        <div className="max-w-4xl text-left">
           <p className="text-[11px] tracking-[0.4em] text-[var(--color-hud)] [text-shadow:0_0_12px_rgba(127,200,255,0.6)]">
             <TypewriterReveal text="ORBITAL UPLINK ESTABLISHED // CLEARANCE GRANTED" on={heroReady} start={0} stagger={0.01} />
           </p>
           <h1 className="animate-glow-flicker mt-4 text-4xl font-700 leading-[1.04] text-[var(--color-ice)] [text-shadow:0_0_24px_rgba(120,180,255,0.55),0_0_48px_rgba(80,140,255,0.35)] md:text-6xl lg:text-7xl">
-            <TypewriterReveal text="ENTERING" on={heroReady} start={0.45} stagger={0.03} />
+            <TypewriterReveal text="WELCOME, TO" on={heroReady} start={0.45} stagger={0.03} />
             <br />
             <TypewriterReveal
-              text="ALPHA"
+              text="ALPHA PARTANIA"
               on={heroReady}
-              start={0.72}
+              start={0.85}
               stagger={0.03}
               className="text-[var(--color-hud)]"
             />
-            <br />
-            <TypewriterReveal
-              text="PARTANIA"
-              on={heroReady}
-              start={0.95}
-              stagger={0.03}
-              className="text-[var(--color-hud)]"
-            />
-            <br />
-            <TypewriterReveal text="SYSTEM" on={heroReady} start={1.18} stagger={0.03} />
           </h1>
           <p className="mt-6 max-w-md text-sm leading-relaxed text-[var(--color-ice)]/55">
             <TypewriterReveal

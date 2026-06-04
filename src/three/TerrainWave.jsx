@@ -20,7 +20,7 @@ const TILT = 0.14 // slight pitch so the floor reads as receding ground
 const SCROLL = 2.4
 
 // Neon grid line colour (bright so the bloom pass blooms it).
-const LINE = new THREE.Color('#9ec8ff')
+const LINE = new THREE.Color('#e8f6ff')
 
 // Screen-space "holes" — the grid fades aggressively where the hero copy and
 // the HUD instrument cluster sit, so it never fights the UI. Boxes are in NDC
@@ -113,7 +113,7 @@ export default function TerrainWave() {
     const progress = useStore.getState().progress
     // Disappear almost immediately once scrolling begins.
     const vis = 1 - smoothstep(0, 0.02, progress)
-    if (matRef.current) matRef.current.opacity = vis * 0.6
+    if (matRef.current) matRef.current.opacity = vis * 0.92
 
     if (vis <= 0.001) {
       group.visible = false
@@ -148,7 +148,7 @@ export default function TerrainWave() {
 
       // Depth fade (toward the far/top horizon).
       const yn = clamp01((y + DEPTH / 2) / DEPTH)
-      const depthFade = Math.pow(1 - yn, 1.2)
+      const depthFade = Math.pow(1 - yn, 0.95)
       // Side fade in screen space (|x| / forward distance from the camera).
       const fwd = Math.max(PUSH + Math.cos(TILT) * y, 2)
       const sx = Math.abs(x) / fwd

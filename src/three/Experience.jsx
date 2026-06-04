@@ -12,7 +12,7 @@ import Sun from './Sun'
 import TerrainWave from './TerrainWave'
 import ProjectPlanet from './ProjectPlanet'
 import CameraRig from './CameraRig'
-import Effects from './Effects'
+import BubbleDistortionPass from './BubbleDistortionPass'
 
 /**
  * Orbit guide-rings on the system plane — the top-down "solar system" read.
@@ -104,7 +104,7 @@ export default function Experience() {
         <Preload all />
       </Suspense>
 
-      <Effects />
+      <BubbleDistortionPass />
       <SceneReady />
     </>
   )

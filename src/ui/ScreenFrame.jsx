@@ -15,6 +15,7 @@
  * canvas (parallax + dust repulsion).
  */
 
+import { forwardRef } from 'react'
 import logo from '../assets/images/AlphaPartaniumLogo.png'
 
 const CHAMFER = 22 // size of the triangle-cut corners (top-right + bottom-right)
@@ -44,9 +45,13 @@ function Dots({ className = '', count = 7 }) {
   )
 }
 
-export default function ScreenFrame() {
+const ScreenFrame = forwardRef(function ScreenFrame(_, ref) {
   return (
-    <div className="pointer-events-none absolute inset-0">
+    <div
+      ref={ref}
+      className="pointer-events-none absolute inset-0"
+      style={{ willChange: 'opacity' }}
+    >
       {/* ---- Perimeter: corner gap bottom-left, chamfered top/bottom-right ---- */}
       <div
         className="absolute inset-4"
@@ -109,4 +114,6 @@ export default function ScreenFrame() {
       <Dots className="left-[34%] top-[15px]" count={8} />
     </div>
   )
-}
+})
+
+export default ScreenFrame

@@ -136,21 +136,34 @@ html.lenis body {
     text-shadow: 0 0 24px rgba(120, 180, 255, 0.55), 0 0 48px rgba(80, 140, 255, 0.35);
     opacity: 1;
   }
-  18% {
-    text-shadow: 0 0 20px rgba(120, 180, 255, 0.42), 0 0 40px rgba(80, 140, 255, 0.26);
-    opacity: 0.94;
+  /* fast double-blink, like a faulty neon tube */
+  16% {
+    text-shadow: 0 0 10px rgba(120, 180, 255, 0.2), 0 0 22px rgba(80, 140, 255, 0.12);
+    opacity: 0.4;
   }
-  22% {
-    text-shadow: 0 0 28px rgba(120, 180, 255, 0.62), 0 0 56px rgba(80, 140, 255, 0.4);
+  18% {
+    text-shadow: 0 0 32px rgba(120, 180, 255, 0.7), 0 0 64px rgba(80, 140, 255, 0.45);
     opacity: 1;
   }
-  60% {
-    text-shadow: 0 0 26px rgba(120, 180, 255, 0.58), 0 0 52px rgba(80, 140, 255, 0.38);
-    opacity: 0.98;
+  20% {
+    text-shadow: 0 0 8px rgba(120, 180, 255, 0.18), 0 0 18px rgba(80, 140, 255, 0.1);
+    opacity: 0.55;
+  }
+  23% {
+    text-shadow: 0 0 34px rgba(120, 180, 255, 0.72), 0 0 68px rgba(80, 140, 255, 0.48);
+    opacity: 1;
+  }
+  58% {
+    text-shadow: 0 0 30px rgba(120, 180, 255, 0.62), 0 0 56px rgba(80, 140, 255, 0.4);
+    opacity: 1;
+  }
+  61% {
+    text-shadow: 0 0 9px rgba(120, 180, 255, 0.18), 0 0 18px rgba(80, 140, 255, 0.1);
+    opacity: 0.45;
   }
   63% {
-    text-shadow: 0 0 18px rgba(120, 180, 255, 0.38), 0 0 36px rgba(80, 140, 255, 0.24);
-    opacity: 0.92;
+    text-shadow: 0 0 30px rgba(120, 180, 255, 0.64), 0 0 58px rgba(80, 140, 255, 0.42);
+    opacity: 1;
   }
 }
 
@@ -353,7 +366,7 @@ html.lenis body {
   animation: scroll-cue 1.8s ease-in-out infinite;
 }
 .animate-glow-flicker {
-  animation: glow-flicker 5s ease-in-out infinite;
+  animation: glow-flicker 4s ease-in-out infinite;
 }
 .animate-pulse-soft {
   animation: pulse-soft 2.4s ease-in-out infinite;
