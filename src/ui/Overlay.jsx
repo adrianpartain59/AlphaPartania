@@ -5,6 +5,7 @@ import { systemAnchor } from '../three/systemAnchor'
 import { playSfx, playTypingSfx, stopTypingSfx, getMusicLevels } from '../audio/audio'
 import ScreenFrame from './ScreenFrame'
 import SystemHud, { WireGlobe } from './SystemHud'
+import ShipStatus from './ShipStatus'
 import HudButton from './HudButton'
 import HudFrame from './HudFrame'
 
@@ -193,6 +194,7 @@ export default function Overlay() {
   const counterRef = useRef(null)
   const outroRef = useRef(null)
   const systemBoxRef = useRef(null)
+  const shipHudRef = useRef(null)
   const nextGlobeRef = useRef(null)
   const nextNameRef = useRef(null)
 
@@ -210,6 +212,9 @@ export default function Overlay() {
       }
       if (cueRef.current) {
         cueRef.current.style.opacity = String(1 - smoothstep(0, 0.04, progress))
+      }
+      if (shipHudRef.current) {
+        shipHudRef.current.style.opacity = String(1 - smoothstep(0.004, 0.035, progress))
       }
 
       let activeIndex = 0
@@ -483,6 +488,16 @@ export default function Overlay() {
         style={{ willChange: 'opacity' }}
       >
         <WireGlobe nameRef={nextNameRef} />
+      </div>
+
+      {/* Orbiter status panel in the top-right — a landing-page flourish that
+          retreats the instant you start travelling into the system. */}
+      <div
+        ref={shipHudRef}
+        className="pointer-events-none absolute right-6 top-16 md:right-10 md:top-14"
+        style={{ willChange: 'opacity' }}
+      >
+        <ShipStatus />
       </div>
 
       {/* ---------------------------- Hero ----------------------------- */}
