@@ -2,20 +2,25 @@
  * Minimalist sci-fi HUD that hugs the far outer edges of the screen, traced in
  * white only. Faithful to the reference:
  *
- *   • perimeter     thin glowing line; SHARP top corners, CHAMFERED (triangle-
- *                   cut) bottom corners — no rounded corners anywhere.
- *   • top-left      thick diagonal hatch tab ("/ / /") + a "+" crosshair
- *   • top-right     solid filled right-triangle in the corner
- *   • right edge    a vertical stack of three rings + "+" crosshairs
- *   • bottom edge   a thick hatch tab with a small notch/dip in the line
- *   • bottom-left   a vertical stack of two rings
+ *   • perimeter     thin glowing line; bottom-left corner gap for logo,
+ *                   CHAMFERED top-right + bottom-right — no rounded corners.
+ *   • bottom-left   AP logo seated in the corner gap
+ *   • top-left      "+" crosshair + dotted tick segment
+ *   • top-right     chamfer matching the bottom-right cut
+ *   • right edge    dotted tick segment
+ *   • bottom edge   a thick hatch tab at the bottom-right
  *   • scattered     "+" crosshairs and dotted tick segments
  *
  * Purely decorative + `pointer-events-none` so the cursor still reaches the
  * canvas (parallax + dust repulsion).
  */
 
-const CHAMFER = 22 // size of the bottom triangle-cut corners
+import logo from '../assets/images/AlphaPartaniumLogo.png'
+
+const CHAMFER = 22 // size of the triangle-cut corners (top-right + bottom-right)
+const CORNER_GAP = 34 // how far frame lines stop short of the bottom-left corner
+const LOGO_SIZE = 44 // logo dimensions — independent of the line gap
+const FRAME_INSET = 16 // matches Tailwind inset-4
 const DIAG = CHAMFER * Math.SQRT2 // length of the chamfer line
 const LINE = 'rgba(255,255,255,0.9)'
 
@@ -30,40 +35,29 @@ function Plus({ className = '', size = 12 }) {
 }
 
 /* A block of thick, evenly-spaced diagonal hatch bars ("/ / /"). */
-function Hatch({ className = '', count = 6, gap = 11, h = 18, stroke = 4 }) {
-  const w = (count - 1) * gap + h
+function Hatch({ className = '', style, count = 6, gap = 11, h = 18, stroke = 4 }) {
+  const w = (count - 1) * gap + h + stroke
   return (
     <svg
       className={`absolute ${className}`}
+      style={style}
       width={w}
       height={h}
       viewBox={`0 0 ${w} ${h}`}
       fill="none"
     >
-      {Array.from({ length: count }).map((_, i) => (
-        <line
-          key={i}
-          x1={i * gap}
-          y1={h}
-          x2={i * gap + h}
-          y2={0}
-          stroke="white"
-          strokeOpacity={0.9}
-          strokeWidth={stroke}
-        />
-      ))}
+      {Array.from({ length: count }).map((_, i) => {
+        const x0 = i * gap
+        return (
+          <polygon
+            key={i}
+            points={`${x0},${h} ${x0 + stroke},${h} ${x0 + h + stroke},0 ${x0 + h},0`}
+            fill="white"
+            fillOpacity={0.9}
+          />
+        )
+      })}
     </svg>
-  )
-}
-
-/* A vertical stack of small hollow rings. */
-function Rings({ className = '', count = 3 }) {
-  return (
-    <div className={`absolute flex flex-col gap-2.5 ${className}`}>
-      {Array.from({ length: count }).map((_, i) => (
-        <span key={i} className="h-2.5 w-2.5 rounded-full border border-white/75" />
-      ))}
-    </div>
   )
 }
 
@@ -81,26 +75,32 @@ function Dots({ className = '', count = 7 }) {
 export default function ScreenFrame() {
   return (
     <div className="pointer-events-none absolute inset-0">
-      {/* ---- Perimeter: sharp top corners, chamfered bottom corners ---- */}
+      {/* ---- Perimeter: corner gap bottom-left, chamfered top/bottom-right ---- */}
       <div
         className="absolute inset-4"
         style={{ filter: 'drop-shadow(0 0 4px rgba(255,255,255,0.4))' }}
       >
         {/* straight edges */}
-        <span className="absolute left-0 right-0 top-0" style={{ height: 2, background: LINE }} />
-        <span className="absolute left-0 top-0" style={{ bottom: CHAMFER, width: 2, background: LINE }} />
-        <span className="absolute right-0 top-0" style={{ bottom: CHAMFER, width: 2, background: LINE }} />
-        <span className="absolute bottom-0" style={{ left: CHAMFER, right: CHAMFER, height: 2, background: LINE }} />
-        {/* bottom triangle-cut corners */}
+        <span className="absolute left-0 top-0" style={{ right: CHAMFER, height: 2, background: LINE }} />
+        <span className="absolute left-0 top-0" style={{ bottom: CORNER_GAP, width: 2, background: LINE }} />
+        <span
+          className="absolute right-0"
+          style={{ top: CHAMFER, bottom: CHAMFER, width: 2, background: LINE }}
+        />
+        <span
+          className="absolute bottom-0"
+          style={{ left: CORNER_GAP, right: CHAMFER, height: 2, background: LINE }}
+        />
+        {/* triangle-cut corners (top-right + bottom-right) */}
         <span
           className="absolute"
           style={{
-            left: 0,
-            bottom: CHAMFER,
+            right: 0,
+            top: CHAMFER,
             width: DIAG,
             height: 2,
             background: LINE,
-            transformOrigin: 'left center',
+            transformOrigin: 'right center',
             transform: 'rotate(45deg)',
           }}
         />
@@ -118,31 +118,29 @@ export default function ScreenFrame() {
         />
       </div>
 
-      {/* ---- Top-left: thick hatch tab + crosshair ---- */}
-      <Hatch className="left-12 top-[18px]" count={6} />
+      {/* ---- Bottom-left: logo in the corner gap ---- */}
+      <img
+        src={logo}
+        alt="Alpha Partanium"
+        className="absolute"
+        style={{
+          bottom: 0,
+          left: 0,
+          width: LOGO_SIZE,
+          height: LOGO_SIZE,
+        }}
+        draggable={false}
+      />
+
+      {/* ---- Top-left: crosshair + dotted tick ---- */}
       <Plus className="left-12 top-14" />
       <Dots className="left-[34%] top-[15px]" count={8} />
 
-      {/* ---- Top-right: solid filled triangle in the corner ---- */}
-      <svg className="absolute right-4 top-4" width="34" height="34" viewBox="0 0 34 34">
-        <polygon points="34,0 0,0 34,34" fill="rgba(255,255,255,0.85)" />
-      </svg>
-
-      {/* ---- Right edge: three rings + crosshairs ---- */}
-      <Rings className="right-[22px] top-[26%]" count={3} />
-      <Plus className="right-11 top-[26%]" />
+      {/* ---- Right edge: dotted tick ---- */}
       <Dots className="right-[18px] top-[58%] flex-col gap-1.5" count={6} />
 
-      {/* ---- Bottom-right: inner crosshair ---- */}
-      <Plus className="bottom-12 right-12" />
-
-      {/* ---- Bottom edge: thick hatch tab + small notch/dip ---- */}
-      <Hatch className="bottom-[18px] left-[56%]" count={6} />
-      <span className="absolute bottom-4 left-1/2 h-3 w-20 -translate-x-1/2 translate-y-3 border-x border-b border-white/45" />
-
-      {/* ---- Bottom-left / left edge: two rings + crosshair ---- */}
-      <Rings className="left-[22px] bottom-[26%]" count={2} />
-      <Plus className="left-12 bottom-14" />
+      {/* ---- Bottom edge: hatch tab flush against bottom-right chamfer ---- */}
+      <Hatch className="bottom-[26px]" style={{ right: FRAME_INSET + 12 }} count={6} h={16} />
     </div>
   )
 }

@@ -26,6 +26,12 @@ let sfxBuffer = null
 let typingBuffer = null
 let sfxPromise = null
 let typingSource = null
+let musicSource = null
+let musicAnalyser = null
+let musicBins = null
+let musicEnergy = 0
+let kickFloor = 0.025
+let prevKickBand = 0
 
 let ready = false
 let interacted = false
@@ -51,6 +57,22 @@ function ensureCtx() {
   return ctx
 }
 
+function ensureMusicAnalyser() {
+  const c = ensureCtx()
+  const m = ensureMusic()
+  if (!c || musicAnalyser) return musicAnalyser
+
+  musicSource = c.createMediaElementSource(m)
+  musicAnalyser = c.createAnalyser()
+  musicAnalyser.fftSize = 2048
+  musicAnalyser.smoothingTimeConstant = 0.18
+  musicBins = new Uint8Array(musicAnalyser.frequencyBinCount)
+
+  musicSource.connect(musicAnalyser)
+  musicAnalyser.connect(c.destination)
+  return musicAnalyser
+}
+
 function fadeMusicTo(target) {
   if (!music) return
   cancelAnimationFrame(fadeRAF)
@@ -72,6 +94,7 @@ function tryStartMusic() {
   const p = m.play()
   const onPlaying = () => {
     started = true
+    ensureMusicAnalyser()
     fadeMusicTo(MUSIC_VOLUME)
   }
   if (p && typeof p.then === 'function') p.then(onPlaying).catch(() => {})
@@ -163,4 +186,45 @@ export function setMuted(value) {
 
 export function isMusicStarted() {
   return started
+}
+
+/**
+ * Current kick energy, normalised 0→1 and smoothed for visuals.
+ * Called from the render loop, so it does not touch React state.
+ */
+export function getMusicEnergy() {
+  if (!started || muted || !musicAnalyser || !musicBins) {
+    musicEnergy *= 0.9
+    return musicEnergy
+  }
+
+  musicAnalyser.getByteFrequencyData(musicBins)
+
+  // Kick detector: favor the punch range, but keep enough low-end bandwidth for
+  // compressed tracks whose kick fundamental is not isolated in one bin.
+  const binHz = ctx.sampleRate / musicAnalyser.fftSize
+  const start = Math.max(1, Math.floor(35 / binHz))
+  const end = Math.min(musicBins.length, Math.ceil(210 / binHz))
+  let weighted = 0
+  let weightTotal = 0
+  for (let i = start; i < end; i++) {
+    const bin = musicBins[i] / 255
+    const hz = i * binHz
+    const distanceFromPunch = Math.abs(hz - 95) / 115
+    const weight = Math.max(0.55, 1.55 - distanceFromPunch)
+    weighted += bin * weight
+    weightTotal += weight
+  }
+
+  const kickBand = weightTotal ? weighted / weightTotal : 0
+  kickFloor += (kickBand - kickFloor) * 0.004
+
+  const onset = Math.max(0, kickBand - prevKickBand * 0.82)
+  const aboveFloor = Math.max(0, kickBand - kickFloor * 0.72)
+  prevKickBand = kickBand
+
+  const shaped = Math.min(1, Math.pow(onset * 13 + aboveFloor * 5.5 + kickBand * 1.35, 0.9))
+  const smoothing = shaped > musicEnergy ? 0.96 : 0.12
+  musicEnergy += (shaped - musicEnergy) * smoothing
+  return musicEnergy
 }

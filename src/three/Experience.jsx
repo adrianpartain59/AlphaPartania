@@ -6,6 +6,7 @@ import { useStore } from '../store/useStore'
 import Lighting from './Lighting'
 import Starfield from './Starfield'
 import DustRings from './DustRings'
+import MilkyWayChannel from './MilkyWayChannel'
 import Sun from './Sun'
 import ProjectPlanet from './ProjectPlanet'
 import CameraRig from './CameraRig'
@@ -48,6 +49,7 @@ export default function Experience() {
       <Suspense fallback={null}>
         <Lighting />
         <Starfield />
+        <MilkyWayChannel />
         <Sun />
         <DustRings />
         <OrbitPaths />

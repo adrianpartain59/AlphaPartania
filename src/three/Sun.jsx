@@ -2,6 +2,7 @@ import { useMemo, useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 import { sceneConfig } from '../data/projects'
+import { getMusicEnergy } from '../audio/audio'
 
 /** Soft radial glow sprite for the corona (generated, no texture file). */
 function useGlowTexture(color) {
@@ -32,20 +33,44 @@ function useGlowTexture(color) {
  */
 export default function Sun() {
   const { sun } = sceneConfig
+  const groupRef = useRef(null)
   const coreRef = useRef(null)
+  const innerGlowRef = useRef(null)
+  const outerGlowRef = useRef(null)
+  const lightRef = useRef(null)
+  const energyRef = useRef(0)
   const glow = useGlowTexture(sun.coronaColor)
 
   useFrame((state) => {
     const t = state.clock.elapsedTime
+    const music = getMusicEnergy()
+    energyRef.current += (music - energyRef.current) * (music > energyRef.current ? 0.95 : 0.2)
+    const beat = energyRef.current
+    const bounce = 1 + beat * 0.42 + Math.sin(t * 12) * beat * 0.018
+
+    if (groupRef.current) {
+      groupRef.current.scale.setScalar(bounce)
+    }
+
     if (coreRef.current) {
       coreRef.current.rotation.y = t * 0.05
       // Gentle "breathing" so the star feels alive.
-      coreRef.current.material.emissiveIntensity = 2.6 + Math.sin(t * 0.8) * 0.35
+      coreRef.current.material.emissiveIntensity =
+        2.6 + Math.sin(t * 0.8) * 0.35 + beat * 4.8
+    }
+    if (innerGlowRef.current) {
+      innerGlowRef.current.material.opacity = 0.9 + beat * 0.55
+    }
+    if (outerGlowRef.current) {
+      outerGlowRef.current.material.opacity = 0.35 + beat * 0.5
+    }
+    if (lightRef.current) {
+      lightRef.current.intensity = 650 + beat * 620
     }
   })
 
   return (
-    <group>
+    <group ref={groupRef}>
       {/* Emissive core */}
       <mesh ref={coreRef}>
         <icosahedronGeometry args={[sun.radius, 12]} />
@@ -60,7 +85,7 @@ export default function Sun() {
       </mesh>
 
       {/* Tight inner corona */}
-      <sprite scale={[sun.radius * 5, sun.radius * 5, 1]}>
+      <sprite ref={innerGlowRef} scale={[sun.radius * 5, sun.radius * 5, 1]}>
         <spriteMaterial
           map={glow}
           color={sun.coronaColor}
@@ -72,7 +97,7 @@ export default function Sun() {
       </sprite>
 
       {/* Wide, faint outer corona */}
-      <sprite scale={[sun.radius * 11, sun.radius * 11, 1]}>
+      <sprite ref={outerGlowRef} scale={[sun.radius * 11, sun.radius * 11, 1]}>
         <spriteMaterial
           map={glow}
           color={sun.color}
@@ -84,7 +109,7 @@ export default function Sun() {
       </sprite>
 
       {/* Central light that fills the system. */}
-      <pointLight color={sun.color} intensity={650} distance={140} decay={2} />
+      <pointLight ref={lightRef} color={sun.color} intensity={650} distance={140} decay={2} />
     </group>
   )
 }

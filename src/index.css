@@ -209,11 +209,21 @@ html.lenis body {
   }
 }
 
-/* Walks the dash gaps along the rectangle outline (around the perimeter). */
-@keyframes enter-outline-travel {
-  to {
-    /* Multiple of the dash pattern (34 + 14 = 48) so the loop is seamless. */
-    stroke-dashoffset: -480;
+/* Walks irregular dash gaps around the chamfered outline at uneven speed. */
+@keyframes hud-btn-outline-travel {
+  0% {
+    stroke-dashoffset: 0;
+  }
+  30% {
+    stroke-dashoffset: -296;
+    animation-timing-function: cubic-bezier(0.25, 0.1, 0.25, 1);
+  }
+  62% {
+    stroke-dashoffset: -592;
+    animation-timing-function: cubic-bezier(0.55, 0, 0.45, 1);
+  }
+  100% {
+    stroke-dashoffset: -888;
   }
 }
 
@@ -239,28 +249,25 @@ html.lenis body {
   animation: intro-fade-up 0.9s cubic-bezier(0.22, 1, 0.36, 1) forwards;
 }
 
-/* ---- "Enter the system" button: HUD outline with travelling gaps -------- */
-.enter-btn {
+/* ---- Chamfered HUD button: travelling-gap outline (HudButton.jsx) -------- */
+.hud-btn {
   background: rgba(255, 255, 255, 0.04);
 }
-.enter-btn:hover {
+.hud-btn:hover {
   background: rgba(255, 255, 255, 0.1);
 }
 
-/* The outline rect is dashed; animating the dash offset walks the gaps along
-   the rectangle path so the breaks travel around the perimeter (turning the
-   corners), instead of the whole outline spinning. */
-.enter-outline {
+.hud-btn-outline {
   color: rgba(255, 255, 255, 0.85);
   overflow: visible;
 }
-.enter-outline rect {
-  /* Long dashes, short gaps. The pattern repeats around the full perimeter. */
-  stroke-dasharray: 34 14;
-  animation: enter-outline-travel 3.5s linear infinite;
+.hud-btn-outline path {
+  /* Two long dashes per loop — fewer, wider gaps. Pattern total 296px. */
+  stroke-dasharray: 120 44 96 36;
+  animation: hud-btn-outline-travel 16s ease-in-out infinite;
 }
-.enter-btn:hover .enter-outline rect {
-  animation-duration: 1.8s;
+.hud-btn:hover .hud-btn-outline path {
+  animation-duration: 11s;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -268,7 +275,7 @@ html.lenis body {
     animation: none;
     opacity: 1;
   }
-  .enter-outline rect {
+  .hud-btn-outline path {
     animation: none;
   }
 }

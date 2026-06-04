@@ -3,6 +3,7 @@ import { projects, focusMarkers } from '../data/projects'
 import { useStore } from '../store/useStore'
 import { playSfx, playTypingSfx, stopTypingSfx } from '../audio/audio'
 import ScreenFrame from './ScreenFrame'
+import HudButton from './HudButton'
 import HudFrame from './HudFrame'
 
 /* ----------------------------- math helpers ------------------------------ */
@@ -285,33 +286,15 @@ export default function Overlay() {
             />
           </p>
 
-          <button
-            type="button"
+          <HudButton
             onClick={enterSystem}
             className={[
-              'enter-btn pointer-events-auto group relative mt-8 inline-flex items-center gap-3 px-8 py-3.5 text-xs tracking-[0.35em] text-[var(--color-ice)]',
+              'pointer-events-auto mt-8 gap-3 px-8 py-3.5 text-xs tracking-[0.35em]',
               'transition-[opacity,background-color] duration-500 ease-out',
               heroReady ? 'opacity-100' : 'opacity-0 pointer-events-none',
             ].join(' ')}
             style={{ transitionDelay: heroReady ? '2.4s' : '0s' }}
           >
-            {/* Outline whose gaps travel around the rectangle perimeter. */}
-            <svg
-              className="enter-outline pointer-events-none absolute inset-0 h-full w-full"
-              preserveAspectRatio="none"
-              aria-hidden
-            >
-              <rect
-                x="0"
-                y="0"
-                width="100%"
-                height="100%"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.5"
-                vectorEffect="non-scaling-stroke"
-              />
-            </svg>
             ENTER THE SYSTEM
             <svg width="18" height="14" viewBox="0 0 24 24" fill="none" aria-hidden>
               <path
@@ -322,12 +305,12 @@ export default function Overlay() {
                 strokeLinejoin="round"
               />
             </svg>
-          </button>
+          </HudButton>
         </div>
 
         <div
           ref={cueRef}
-          className="absolute bottom-16 left-1/2 flex -translate-x-1/2 flex-col items-center gap-2"
+          className="absolute bottom-28 left-1/2 flex -translate-x-1/2 flex-col items-center gap-2"
         >
           <span className="text-[10px] tracking-[0.35em] text-[var(--color-hud)]/70">
             SCROLL
@@ -445,27 +428,27 @@ export default function Overlay() {
 
       {/* ------------- Prev / next project nav (near scroll cue) -------- */}
       <div className="pointer-events-auto absolute bottom-12 left-1/2 flex -translate-x-1/2 items-center gap-4">
-        <button
-          type="button"
+        <HudButton
           onClick={() => step(-1)}
           aria-label="Previous project"
-          className="flex h-9 w-9 items-center justify-center border border-white/40 text-white/80 transition-colors duration-200 hover:border-white/80 hover:text-white active:scale-95"
+          chamfer={8}
+          className="h-9 w-9 text-white/80 hover:text-white active:scale-95"
         >
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden>
             <path d="M15 5l-7 7 7 7" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
-        </button>
+        </HudButton>
         <span className="text-[9px] tracking-[0.35em] text-white/40">NAVIGATE</span>
-        <button
-          type="button"
+        <HudButton
           onClick={() => step(1)}
           aria-label="Next project"
-          className="flex h-9 w-9 items-center justify-center border border-white/40 text-white/80 transition-colors duration-200 hover:border-white/80 hover:text-white active:scale-95"
+          chamfer={8}
+          className="h-9 w-9 text-white/80 hover:text-white active:scale-95"
         >
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden>
             <path d="M9 5l7 7-7 7" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
-        </button>
+        </HudButton>
       </div>
 
       {/* ------------------- Bottom progress / readout ----------------- */}
@@ -483,9 +466,6 @@ export default function Overlay() {
             style={{ transform: 'scaleX(0)' }}
           />
         </div>
-        <span className="hidden whitespace-nowrap text-[10px] tracking-[0.25em] text-[var(--color-hud)]/50 md:inline">
-          TRAVERSE // SCROLL
-        </span>
       </div>
     </div>
   )
