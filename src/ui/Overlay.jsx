@@ -3,6 +3,7 @@ import { projects, focusMarkers } from '../data/projects'
 import { useStore } from '../store/useStore'
 import { playSfx, playTypingSfx, stopTypingSfx } from '../audio/audio'
 import ScreenFrame from './ScreenFrame'
+import SystemHud, { WireGlobe } from './SystemHud'
 import HudButton from './HudButton'
 import HudFrame from './HudFrame'
 
@@ -14,6 +15,14 @@ function smoothstep(edge0, edge1, x) {
 }
 const PANEL_FULL = 0.05
 const PANEL_FADE = 0.14
+
+/* HUD bounding box framing the system (bottom-right) on the landing shot.
+   Lines + chamfer match the outer ScreenFrame perimeter. */
+const SYS_LINE = 'rgba(255,255,255,0.9)'
+const SYS_CHAMFER = 22
+const SYS_DIAG = SYS_CHAMFER * Math.SQRT2
+/* Where, along the top edge, the trapezoidal tab chamfers up and out. */
+const SYS_TAB_AT = '40%'
 
 // Ordered waypoints the prev/next buttons step through:
 // overview → each project → outro.
@@ -128,6 +137,9 @@ export default function Overlay() {
   const barRef = useRef(null)
   const counterRef = useRef(null)
   const outroRef = useRef(null)
+  const systemBoxRef = useRef(null)
+  const nextGlobeRef = useRef(null)
+  const nextNameRef = useRef(null)
 
   useEffect(() => {
     const apply = (progress) => {
@@ -138,6 +150,9 @@ export default function Overlay() {
       }
       if (cueRef.current) {
         cueRef.current.style.opacity = String(1 - smoothstep(0, 0.04, progress))
+      }
+      if (systemBoxRef.current) {
+        systemBoxRef.current.style.opacity = String(1 - smoothstep(0.004, 0.035, progress))
       }
 
       let activeIndex = 0
@@ -174,6 +189,18 @@ export default function Overlay() {
         outroRef.current.style.opacity = String(outroIn)
         outroRef.current.style.transform = `translateY(${(1 - outroIn) * 30}px)`
         outroRef.current.style.pointerEvents = outroIn > 0.5 ? 'auto' : 'none'
+      }
+
+      // Persistent "next planet" read-out: show the upcoming destination, then
+      // retire once we're heading past the final planet into the outro.
+      let nextIdx = focusMarkers.findIndex((m) => m.progress > progress + 0.001)
+      if (nextIdx === -1) nextIdx = focusMarkers.length - 1
+      if (nextNameRef.current) {
+        nextNameRef.current.textContent = projects[nextIdx].name.toUpperCase()
+      }
+      if (nextGlobeRef.current) {
+        const lastProg = focusMarkers[focusMarkers.length - 1].progress
+        nextGlobeRef.current.style.opacity = String(1 - smoothstep(lastProg - 0.06, lastProg + 0.06, progress))
       }
 
       if (barRef.current) barRef.current.style.transform = `scaleX(${progress})`
@@ -227,6 +254,61 @@ export default function Overlay() {
     <div className="pointer-events-none fixed inset-0 z-10 select-none">
       <ScreenFrame />
 
+      {/* ---- Bounding box framing the system (bottom-right): only a top edge,
+              left edge and chamfered top-left corner — the open right/bottom
+              sides run into the screen's perimeter frame (inset-4 = 16px).
+              Fades out as the camera travels into the system. ---- */}
+      <div
+        ref={systemBoxRef}
+        className="pointer-events-none absolute"
+        style={{
+          left: '63%',
+          top: '64%',
+          right: 16,
+          bottom: 16,
+          filter: 'drop-shadow(0 0 4px rgba(255,255,255,0.4))',
+          willChange: 'opacity',
+        }}
+      >
+        {/* top edge: lower run, then an early chamfer up to a raised run that
+            continues to the right frame — a trapezoidal tab sticking out the
+            top-right. */}
+        <span className="absolute top-0" style={{ left: SYS_CHAMFER, width: `calc(${SYS_TAB_AT} - ${SYS_CHAMFER}px)`, height: 2, background: SYS_LINE }} />
+        <span
+          className="absolute top-0"
+          style={{
+            left: SYS_TAB_AT,
+            width: SYS_DIAG,
+            height: 2,
+            background: SYS_LINE,
+            transformOrigin: 'left center',
+            transform: 'rotate(-45deg)',
+          }}
+        />
+        <span
+          className="absolute"
+          style={{ left: `calc(${SYS_TAB_AT} + ${SYS_CHAMFER}px)`, right: 0, top: -SYS_CHAMFER, height: 2, background: SYS_LINE }}
+        />
+        {/* left edge (starts past the chamfer, runs to the bottom frame) */}
+        <span className="absolute left-0" style={{ top: SYS_CHAMFER, bottom: 0, width: 2, background: SYS_LINE }} />
+        {/* chamfered top-left corner */}
+        <span
+          className="absolute"
+          style={{
+            left: 0,
+            top: SYS_CHAMFER,
+            width: SYS_DIAG,
+            height: 2,
+            background: SYS_LINE,
+            transformOrigin: 'left center',
+            transform: 'rotate(-45deg)',
+          }}
+        />
+
+        {/* sci-fi instrument cluster around the frame */}
+        <SystemHud chamfer={SYS_CHAMFER} tabAt={SYS_TAB_AT} />
+      </div>
+
       {/* ----------------------- Mute toggle (top-right) --------------- */}
       <button
         type="button"
@@ -254,6 +336,15 @@ export default function Overlay() {
         </svg>
       </button>
 
+      {/* ------- Persistent "next planet" read-out (whole journey) ------ */}
+      <div
+        ref={nextGlobeRef}
+        className="pointer-events-none absolute bottom-16 left-8 md:left-16"
+        style={{ willChange: 'opacity' }}
+      >
+        <WireGlobe nameRef={nextNameRef} />
+      </div>
+
       {/* ---------------------------- Hero ----------------------------- */}
       <div
         ref={heroRef}
@@ -261,16 +352,24 @@ export default function Overlay() {
         style={{ willChange: 'opacity, transform' }}
       >
         <div className="max-w-2xl text-left">
-          <p className="text-[11px] tracking-[0.4em] text-[var(--color-hud)]">
+          <p className="text-[11px] tracking-[0.4em] text-[var(--color-hud)] [text-shadow:0_0_12px_rgba(127,200,255,0.6)]">
             <TypewriterReveal text="ORBITAL UPLINK ESTABLISHED // CLEARANCE GRANTED" on={heroReady} start={0} stagger={0.01} />
           </p>
-          <h1 className="mt-4 text-4xl font-700 leading-[1.04] text-[var(--color-ice)] md:text-6xl lg:text-7xl">
+          <h1 className="animate-glow-flicker mt-4 text-4xl font-700 leading-[1.04] text-[var(--color-ice)] [text-shadow:0_0_24px_rgba(120,180,255,0.55),0_0_48px_rgba(80,140,255,0.35)] md:text-6xl lg:text-7xl">
             <TypewriterReveal text="ENTERING" on={heroReady} start={0.45} stagger={0.03} />
             <br />
             <TypewriterReveal
-              text="ALPHA PARTANIUM"
+              text="ALPHA"
               on={heroReady}
               start={0.72}
+              stagger={0.03}
+              className="text-[var(--color-hud)]"
+            />
+            <br />
+            <TypewriterReveal
+              text="PARTANIA"
+              on={heroReady}
+              start={0.95}
               stagger={0.03}
               className="text-[var(--color-hud)]"
             />
@@ -289,14 +388,14 @@ export default function Overlay() {
           <HudButton
             onClick={enterSystem}
             className={[
-              'pointer-events-auto mt-8 gap-3 px-8 py-3.5 text-xs tracking-[0.35em]',
+              'pointer-events-auto mt-8 gap-4 px-12 py-5 text-base tracking-[0.35em]',
               'transition-[opacity,background-color] duration-500 ease-out',
               heroReady ? 'opacity-100' : 'opacity-0 pointer-events-none',
             ].join(' ')}
             style={{ transitionDelay: heroReady ? '2.4s' : '0s' }}
           >
             ENTER THE SYSTEM
-            <svg width="18" height="14" viewBox="0 0 24 24" fill="none" aria-hidden>
+            <svg width="24" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
               <path
                 d="M5 12h14M13 6l6 6-6 6"
                 stroke="currentColor"

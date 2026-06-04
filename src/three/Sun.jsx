@@ -1,7 +1,9 @@
 import { useMemo, useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
+import { Billboard } from '@react-three/drei'
 import * as THREE from 'three'
-import { sceneConfig } from '../data/projects'
+import { sceneConfig, revealFactor } from '../data/projects'
+import { useStore } from '../store/useStore'
 import { getMusicEnergy } from '../audio/audio'
 
 /** Soft radial glow sprite for the corona (generated, no texture file). */
@@ -38,8 +40,11 @@ export default function Sun() {
   const innerGlowRef = useRef(null)
   const outerGlowRef = useRef(null)
   const lightRef = useRef(null)
+  const outlineDiscRef = useRef(null)
+  const outlineRingRef = useRef(null)
   const energyRef = useRef(0)
   const glow = useGlowTexture(sun.coronaColor)
+  const outlineW = sun.radius * 0.06
 
   useFrame((state) => {
     const t = state.clock.elapsedTime
@@ -52,21 +57,28 @@ export default function Sun() {
       groupRef.current.scale.setScalar(bounce)
     }
 
+    // Wireframe → full crossfade: at the establishing shot the star reads as a
+    // bare outlined sphere; its emissive core, corona and fill-light ramp in as
+    // the camera closes on the system.
+    const reveal = revealFactor(useStore.getState().progress)
+
     if (coreRef.current) {
       coreRef.current.rotation.y = t * 0.05
       // Gentle "breathing" so the star feels alive.
       coreRef.current.material.emissiveIntensity =
-        2.6 + Math.sin(t * 0.8) * 0.35 + beat * 4.8
+        (2.6 + Math.sin(t * 0.8) * 0.35 + beat * 4.8) * reveal
     }
     if (innerGlowRef.current) {
-      innerGlowRef.current.material.opacity = 0.9 + beat * 0.55
+      innerGlowRef.current.material.opacity = (0.9 + beat * 0.55) * reveal
     }
     if (outerGlowRef.current) {
-      outerGlowRef.current.material.opacity = 0.35 + beat * 0.5
+      outerGlowRef.current.material.opacity = (0.35 + beat * 0.5) * reveal
     }
     if (lightRef.current) {
-      lightRef.current.intensity = 650 + beat * 620
+      lightRef.current.intensity = (650 + beat * 620) * reveal
     }
+    if (outlineDiscRef.current) outlineDiscRef.current.opacity = 1 - reveal
+    if (outlineRingRef.current) outlineRingRef.current.opacity = 1 - reveal
   })
 
   return (
@@ -110,6 +122,35 @@ export default function Sun() {
 
       {/* Central light that fills the system. */}
       <pointLight ref={lightRef} color={sun.color} intensity={650} distance={140} decay={2} />
+
+      {/* Wireframe state: outlined sphere (black disc + white ring) matching the
+          planets, drawn on top and dissolving to reveal the glowing star. */}
+      <Billboard>
+        <mesh renderOrder={2}>
+          <circleGeometry args={[sun.radius, 96]} />
+          <meshBasicMaterial
+            ref={outlineDiscRef}
+            color="#000000"
+            transparent
+            opacity={1}
+            depthTest={false}
+            toneMapped={false}
+            side={THREE.DoubleSide}
+          />
+        </mesh>
+        <mesh renderOrder={3}>
+          <ringGeometry args={[sun.radius - outlineW, sun.radius + outlineW, 96]} />
+          <meshBasicMaterial
+            ref={outlineRingRef}
+            color="#ffffff"
+            transparent
+            opacity={1}
+            depthTest={false}
+            toneMapped={false}
+            side={THREE.DoubleSide}
+          />
+        </mesh>
+      </Billboard>
     </group>
   )
 }

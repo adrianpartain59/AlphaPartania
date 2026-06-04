@@ -77,6 +77,14 @@ export const sceneConfig = {
     coreRadius: 1.55,
   },
 
+  /**
+   * Wireframe → full-detail reveal window (in scroll progress). At the
+   * establishing shot the system reads as bare white lines + outlined spheres;
+   * by the time the camera closes on the first planet it has crossfaded into
+   * the full coloured scene.
+   */
+  reveal: { start: 0.015, end: 0.22 },
+
   camera: {
     fov: 50,
     /**
@@ -84,7 +92,7 @@ export const sceneConfig = {
      * system so the whole solar system reads small and sits on the right half of
      * the screen, opposite the intro copy in the top-left.
      */
-    overview: { position: [0, 72, 152], target: [-68, 0, 0] },
+    overview: { position: [0, 95, 200], target: [-96, 45, 0] },
     /** Pulled-back closing shot (progress = 1) for the outro. */
     wide: { position: [4, 66, 66], target: [0, 0, -6] },
     /** How a per-planet focus keyframe is derived from the planet position. */
@@ -95,6 +103,18 @@ export const sceneConfig = {
 /* -------------------------------------------------------------------------- */
 /*  Helpers                                                                   */
 /* -------------------------------------------------------------------------- */
+
+/**
+ * Detail-reveal factor for a given scroll progress: 0 at the establishing shot
+ * (wireframe: white lines + outlined spheres, no colour/dust) easing to 1 as the
+ * camera closes in (full coloured scene). Smoothstepped so the crossfade is
+ * gentle at both ends.
+ */
+export function revealFactor(progress) {
+  const { start, end } = sceneConfig.reveal
+  const t = Math.max(0, Math.min(1, (progress - start) / (end - start)))
+  return t * t * (3 - 2 * t)
+}
 
 /** World-space position of a planet at time `t` (seconds). */
 export function planetOrbitPosition(project, t, out = [0, 0, 0]) {

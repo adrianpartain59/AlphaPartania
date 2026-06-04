@@ -1,6 +1,8 @@
 import { useMemo, useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
+import { revealFactor } from '../data/projects'
+import { useStore } from '../store/useStore'
 
 /* ------------------------------ tuning ----------------------------------- */
 const COUNT = 3600
@@ -51,8 +53,11 @@ const gaussian = () =>
  * gaseous motion via a per-particle overdamped spring driven by a raycast onto
  * the system plane.
  */
+const DUST_OPACITY = 0.55
+
 export default function DustRings() {
   const pointsRef = useRef(null)
+  const matRef = useRef(null)
   const sprite = useSpriteTexture()
 
   const data = useMemo(() => {
@@ -128,6 +133,13 @@ export default function DustRings() {
   useFrame((state, rawDelta) => {
     const points = pointsRef.current
     if (!points) return
+
+    // The dust belts are part of the "detail" layer — invisible in the wireframe
+    // overview and fading in as the camera closes on the system.
+    if (matRef.current) {
+      matRef.current.opacity = DUST_OPACITY * revealFactor(useStore.getState().progress)
+    }
+
     const delta = Math.min(rawDelta, MAX_DELTA)
     const t = state.clock.elapsedTime
     const { positions, angle, baseR, yOff, angSpeed, seed, lobes, wobble, disp, vel } =
@@ -202,6 +214,7 @@ export default function DustRings() {
   return (
     <points ref={pointsRef} geometry={data.geometry} frustumCulled={false}>
       <pointsMaterial
+        ref={matRef}
         map={sprite}
         size={0.32}
         sizeAttenuation
@@ -209,7 +222,7 @@ export default function DustRings() {
         transparent
         depthWrite={false}
         blending={THREE.AdditiveBlending}
-        opacity={0.55}
+        opacity={0}
       />
     </points>
   )

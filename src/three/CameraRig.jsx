@@ -6,6 +6,7 @@ import {
   cameraStops,
   projects,
   planetOrbitPosition,
+  revealFactor,
   sceneConfig,
 } from '../data/projects'
 
@@ -104,7 +105,9 @@ export default function CameraRig() {
     if (mem.right.lengthSq() < 1e-4) mem.right.set(1, 0, 0) // looking straight down
     mem.right.normalize()
     mem.up.crossVectors(mem.right, mem.dir).normalize()
-    const amp = viewDist * PARALLAX
+    // No mouse parallax on the landing/establishing shot; eases in as the
+    // camera travels into the system.
+    const amp = viewDist * PARALLAX * revealFactor(progress)
     mem.desiredPos.addScaledVector(mem.right, state.pointer.x * amp)
     mem.desiredPos.addScaledVector(mem.up, state.pointer.y * amp)
 

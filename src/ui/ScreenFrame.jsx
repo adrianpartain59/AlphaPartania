@@ -20,7 +20,6 @@ import logo from '../assets/images/AlphaPartaniumLogo.png'
 const CHAMFER = 22 // size of the triangle-cut corners (top-right + bottom-right)
 const CORNER_GAP = 34 // how far frame lines stop short of the bottom-left corner
 const LOGO_SIZE = 44 // logo dimensions — independent of the line gap
-const FRAME_INSET = 16 // matches Tailwind inset-4
 const DIAG = CHAMFER * Math.SQRT2 // length of the chamfer line
 const LINE = 'rgba(255,255,255,0.9)'
 
@@ -31,33 +30,6 @@ function Plus({ className = '', size = 12 }) {
       <span className="absolute left-1/2 top-0 h-full w-px -translate-x-1/2 bg-white/85" />
       <span className="absolute top-1/2 left-0 h-px w-full -translate-y-1/2 bg-white/85" />
     </span>
-  )
-}
-
-/* A block of thick, evenly-spaced diagonal hatch bars ("/ / /"). */
-function Hatch({ className = '', style, count = 6, gap = 11, h = 18, stroke = 4 }) {
-  const w = (count - 1) * gap + h + stroke
-  return (
-    <svg
-      className={`absolute ${className}`}
-      style={style}
-      width={w}
-      height={h}
-      viewBox={`0 0 ${w} ${h}`}
-      fill="none"
-    >
-      {Array.from({ length: count }).map((_, i) => {
-        const x0 = i * gap
-        return (
-          <polygon
-            key={i}
-            points={`${x0},${h} ${x0 + stroke},${h} ${x0 + h + stroke},0 ${x0 + h},0`}
-            fill="white"
-            fillOpacity={0.9}
-          />
-        )
-      })}
-    </svg>
   )
 }
 
@@ -138,9 +110,6 @@ export default function ScreenFrame() {
 
       {/* ---- Right edge: dotted tick ---- */}
       <Dots className="right-[18px] top-[58%] flex-col gap-1.5" count={6} />
-
-      {/* ---- Bottom edge: hatch tab flush against bottom-right chamfer ---- */}
-      <Hatch className="bottom-[26px]" style={{ right: FRAME_INSET + 12 }} count={6} h={16} />
     </div>
   )
 }

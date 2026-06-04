@@ -128,6 +128,32 @@ html.lenis body {
   }
 }
 
+/* Very subtle glow flicker for the hero title — tiny shifts in shadow strength
+   and brightness so the text reads as a faintly unstable holographic projection. */
+@keyframes glow-flicker {
+  0%,
+  100% {
+    text-shadow: 0 0 24px rgba(120, 180, 255, 0.55), 0 0 48px rgba(80, 140, 255, 0.35);
+    opacity: 1;
+  }
+  18% {
+    text-shadow: 0 0 20px rgba(120, 180, 255, 0.42), 0 0 40px rgba(80, 140, 255, 0.26);
+    opacity: 0.94;
+  }
+  22% {
+    text-shadow: 0 0 28px rgba(120, 180, 255, 0.62), 0 0 56px rgba(80, 140, 255, 0.4);
+    opacity: 1;
+  }
+  60% {
+    text-shadow: 0 0 26px rgba(120, 180, 255, 0.58), 0 0 52px rgba(80, 140, 255, 0.38);
+    opacity: 0.98;
+  }
+  63% {
+    text-shadow: 0 0 18px rgba(120, 180, 255, 0.38), 0 0 36px rgba(80, 140, 255, 0.24);
+    opacity: 0.92;
+  }
+}
+
 @keyframes pulse-soft {
   0%,
   100% {
@@ -163,6 +189,102 @@ html.lenis body {
   }
   100% {
     transform: translateX(100%);
+  }
+}
+
+/* Spinning wireframe globe (CSS 3D: meridian + latitude rings). */
+@keyframes globe-spin {
+  from {
+    transform: rotateX(-16deg) rotateY(0deg);
+  }
+  to {
+    transform: rotateX(-16deg) rotateY(360deg);
+  }
+}
+.wire-globe {
+  perspective: 220px;
+}
+.wire-globe-rot {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  transform-style: preserve-3d;
+  animation: globe-spin 7s linear infinite;
+}
+.wire-ring {
+  position: absolute;
+  inset: 0;
+  border: 1px solid rgba(255, 255, 255, 0.45);
+  border-radius: 50%;
+}
+
+/* HUD widget motion: radar sweep + engine ring spins. */
+@keyframes hud-spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+@keyframes hud-spin-rev {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(-360deg);
+  }
+}
+@keyframes hud-bar-fill {
+  0%,
+  100% {
+    transform: scaleX(0.35);
+  }
+  50% {
+    transform: scaleX(0.95);
+  }
+}
+/* Stepped charge: fills one segment at a time, holds full, then resets. */
+@keyframes hud-bar-charge {
+  0% {
+    transform: scaleX(0);
+  }
+  85% {
+    transform: scaleX(1);
+  }
+  100% {
+    transform: scaleX(1);
+  }
+}
+/* A single energy-bar segment lighting up (used with staggered delays so the
+   bars fill in one by one). */
+@keyframes hud-cell {
+  0% {
+    opacity: 0.1;
+  }
+  10%,
+  90% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0.1;
+  }
+}
+/* A single power bar charging: empty → full, hold, then empty. Staggered
+   per-bar delays make the row fill in cleanly one bar at a time. */
+@keyframes hud-charge-fill {
+  0% {
+    opacity: 0.15;
+  }
+  10% {
+    opacity: 1;
+  }
+  66% {
+    opacity: 1;
+  }
+  76%,
+  100% {
+    opacity: 0.15;
   }
 }
 
@@ -230,6 +352,9 @@ html.lenis body {
 .animate-scroll-cue {
   animation: scroll-cue 1.8s ease-in-out infinite;
 }
+.animate-glow-flicker {
+  animation: glow-flicker 5s ease-in-out infinite;
+}
 .animate-pulse-soft {
   animation: pulse-soft 2.4s ease-in-out infinite;
 }
@@ -241,6 +366,32 @@ html.lenis body {
 }
 .animate-hud-sweep {
   animation: hud-sweep 4s ease-in-out infinite;
+}
+.animate-hud-spin {
+  animation: hud-spin 4s linear infinite;
+  transform-origin: center;
+}
+.animate-hud-spin-slow {
+  animation: hud-spin 9s linear infinite;
+  transform-origin: center;
+}
+.animate-hud-spin-rev {
+  animation: hud-spin-rev 6s linear infinite;
+  transform-origin: center;
+}
+.animate-hud-bar-fill {
+  animation: hud-bar-fill 3.2s ease-in-out infinite;
+  transform-origin: left center;
+}
+.animate-hud-bar-charge {
+  animation: hud-bar-charge 4s steps(11, end) infinite;
+  transform-origin: left center;
+}
+.animate-hud-cell {
+  animation: hud-cell 3.3s ease-in-out infinite;
+}
+.animate-hud-charge {
+  animation: hud-charge-fill 3.6s ease-in-out infinite;
 }
 
 /* ---- Intro hero fade-in (left-aligned copy in the top-left corner) ------- */
@@ -282,10 +433,19 @@ html.lenis body {
 
 @media (prefers-reduced-motion: reduce) {
   .animate-scroll-cue,
+  .animate-glow-flicker,
   .animate-pulse-soft,
   .animate-loading-slide,
   .animate-hud-blink,
-  .animate-hud-sweep {
+  .animate-hud-sweep,
+  .animate-hud-spin,
+  .animate-hud-spin-slow,
+  .animate-hud-spin-rev,
+  .animate-hud-bar-fill,
+  .animate-hud-bar-charge,
+  .animate-hud-cell,
+  .animate-hud-charge,
+  .wire-globe-rot {
     animation: none;
   }
 }
