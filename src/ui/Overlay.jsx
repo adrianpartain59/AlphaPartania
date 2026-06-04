@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { projects, focusMarkers, PASSTHROUGH_END } from '../data/projects'
 import { useStore } from '../store/useStore'
 import { systemAnchor } from '../three/systemAnchor'
-import { playSfx, playTypingSfx, stopTypingSfx, getMusicLevels } from '../audio/audio'
+import { playSfx, playTypingSfx, stopTypingSfx, getMusicWaveform } from '../audio/audio'
 import ScreenFrame from './ScreenFrame'
 import SystemHud, { WireGlobe } from './SystemHud'
 import ShipStatus from './ShipStatus'
@@ -105,33 +105,66 @@ function TypewriterReveal({ text, on, start = 0, stagger = 0.018, className }) {
   )
 }
 
-/** Number of bands in the audio equalizer (low / mid / high). */
-const EQ_BANDS = 3
+/* Oscilloscope canvas size + waveform sample count (one per horizontal pixel). */
+const SCOPE_W = 240
+const SCOPE_H = 84
+const SCOPE_SAMPLES = SCOPE_W
 
 /**
- * Sci-fi audio equalizer driven by the live music spectrum. When the track is
- * silent (muted / not yet started) the bars rest at zero and it reads AUDIO OFF.
- * Reads levels in its own rAF and writes straight to the DOM (no re-renders).
+ * Sci-fi audio oscilloscope: the live music waveform traced as a glowing line
+ * (amplitude vs time). When the track is silent (muted / not yet started) it
+ * rests on a flat centre line and reads AUDIO OFF. Runs in its own rAF on a
+ * <canvas> so it never triggers React re-renders.
  */
 function AudioMeter() {
-  const barRefs = useRef([])
+  const canvasRef = useRef(null)
   const statusRef = useRef(null)
   const playingRef = useRef(false)
 
   useEffect(() => {
+    const canvas = canvasRef.current
+    if (!canvas) return
+    const g = canvas.getContext('2d')
+    if (!g) return
+    const W = canvas.width
+    const H = canvas.height
+    const mid = H / 2
+
     let raf = 0
     const tick = () => {
-      const levels = getMusicLevels(EQ_BANDS)
-      const on = !!levels
+      raf = requestAnimationFrame(tick)
+      const wave = getMusicWaveform(SCOPE_SAMPLES)
+      const on = !!wave
       if (on !== playingRef.current) {
         playingRef.current = on
         if (statusRef.current) statusRef.current.textContent = on ? 'AUDIO' : 'AUDIO OFF'
       }
-      for (let i = 0; i < EQ_BANDS; i++) {
-        const el = barRefs.current[i]
-        if (el) el.style.transform = `scaleY(${0.07 + (levels ? levels[i] : 0) * 0.93})`
+
+      g.clearRect(0, 0, W, H)
+
+      // Faint centre baseline.
+      g.strokeStyle = 'rgba(255,255,255,0.12)'
+      g.lineWidth = 1
+      g.beginPath()
+      g.moveTo(0, mid)
+      g.lineTo(W, mid)
+      g.stroke()
+
+      // The waveform trace (flat at rest).
+      g.strokeStyle = '#cfeaff'
+      g.lineWidth = 1.5
+      g.shadowColor = 'rgba(127,200,255,0.9)'
+      g.shadowBlur = 4
+      g.beginPath()
+      for (let i = 0; i < SCOPE_SAMPLES; i++) {
+        const x = (i / (SCOPE_SAMPLES - 1)) * W
+        const v = wave ? wave[i] : 0
+        const y = mid - v * mid * 0.92
+        if (i === 0) g.moveTo(x, y)
+        else g.lineTo(x, y)
       }
-      raf = requestAnimationFrame(tick)
+      g.stroke()
+      g.shadowBlur = 0
     }
     raf = requestAnimationFrame(tick)
     return () => cancelAnimationFrame(raf)
@@ -139,16 +172,13 @@ function AudioMeter() {
 
   return (
     <div className="flex flex-col items-end gap-2">
-      <div className="flex h-40 items-end gap-3 md:h-44">
-        {Array.from({ length: EQ_BANDS }).map((_, i) => (
-          <span
-            key={i}
-            ref={(el) => (barRefs.current[i] = el)}
-            className="w-[10px] bg-white/80 md:w-[11px]"
-            style={{ height: '100%', transformOrigin: 'bottom', transform: 'scaleY(0.06)', transition: 'transform 0.07s linear' }}
-          />
-        ))}
-      </div>
+      <canvas
+        ref={canvasRef}
+        width={SCOPE_W}
+        height={SCOPE_H}
+        className="border border-white/15"
+        style={{ width: SCOPE_W, height: SCOPE_H }}
+      />
       <span
         ref={statusRef}
         className="whitespace-nowrap text-right text-[8px] tracking-[0.3em] text-white/40 md:text-[9px]"

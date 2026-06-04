@@ -215,6 +215,29 @@ export function getMusicLevels(bandCount = 7) {
   return out
 }
 
+let musicWave = null
+
+/**
+ * Time-domain waveform for an oscilloscope visual: `count` samples in roughly
+ * [-1, 1]. Returns `null` when the track isn't audible (not started or muted) so
+ * the UI can show an "off" state.
+ */
+export function getMusicWaveform(count = 128) {
+  if (!started || muted || !musicAnalyser) return null
+
+  const size = musicAnalyser.fftSize
+  if (!musicWave || musicWave.length !== size) musicWave = new Uint8Array(size)
+  musicAnalyser.getByteTimeDomainData(musicWave)
+
+  const out = new Array(count)
+  const step = size / count
+  for (let i = 0; i < count; i++) {
+    const idx = Math.floor(i * step)
+    out[i] = (musicWave[idx] - 128) / 128
+  }
+  return out
+}
+
 /**
  * Current kick energy, normalised 0→1 and smoothed for visuals.
  * Called from the render loop, so it does not touch React state.
